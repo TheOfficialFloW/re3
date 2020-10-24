@@ -3,6 +3,9 @@
 void
 CVector::Normalise(void)
 {
+#ifdef PSP2
+	normalize3_neon(&this->x, &this->x);
+#else
 	float sq = MagnitudeSqr();
 	if (sq > 0.0f) {
 		float invsqrt = RecipSqrt(sq);
@@ -11,6 +14,7 @@ CVector::Normalise(void)
 		z *= invsqrt;
 	} else
 		x = 1.0f;
+#endif
 }
 
 CVector

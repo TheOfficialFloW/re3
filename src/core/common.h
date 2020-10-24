@@ -1,5 +1,11 @@
 #pragma once
 
+#ifdef PSP2
+extern "C"{
+#include <math_neon.h>
+};
+#endif
+
 #define _CRT_SECURE_NO_WARNINGS
 #define _USE_MATH_DEFINES
 #pragma warning(disable: 4244)	// int to float
