@@ -64,6 +64,7 @@
 #include "debugmenu.h"
 #include "Clock.h"
 #include "custompipes.h"
+#include "postfx.h"
 
 GlobalScene Scene;
 
@@ -149,10 +150,10 @@ DoRWStuffStartOfFrame(int16 TopRed, int16 TopGreen, int16 TopBlue, int16 BottomR
 	CameraSize(Scene.camera, nil, SCREEN_VIEWWINDOW, SCREEN_ASPECT_RATIO);
 #endif
 	CVisibilityPlugins::SetRenderWareCamera(Scene.camera);
-	RwCameraClear(Scene.camera, &TopColor.rwRGBA, rwCAMERACLEARZ);
 
 	if(!RsCameraBeginUpdate(Scene.camera))
 		return false;
+	RwCameraClear(Scene.camera, &TopColor.rwRGBA, rwCAMERACLEARZ);
 
 	CSprite2d::InitPerFrame();
 
@@ -171,10 +172,11 @@ DoRWStuffStartOfFrame_Horizon(int16 TopRed, int16 TopGreen, int16 TopBlue, int16
 	CameraSize(Scene.camera, nil, SCREEN_VIEWWINDOW, SCREEN_ASPECT_RATIO);
 #endif
 	CVisibilityPlugins::SetRenderWareCamera(Scene.camera);
-	RwCameraClear(Scene.camera, &gColourTop, rwCAMERACLEARZ);
 
 	if(!RsCameraBeginUpdate(Scene.camera))
 		return false;
+	
+	RwCameraClear(Scene.camera, &gColourTop, rwCAMERACLEARZ);
 
 	TheCamera.m_viewMatrix.Update();
 	CClouds::RenderBackground(TopRed, TopGreen, TopBlue, BottomRed, BottomGreen, BottomBlue, Alpha);
@@ -999,6 +1001,11 @@ Render2dStuffAfterFade(void)
 	CFont::DrawFonts();
 }
 
+#ifdef PSP2
+RwRaster *fxraster;
+RwRaster *subras;
+#endif
+
 void
 Idle(void *arg)
 {
@@ -1117,7 +1124,23 @@ Idle(void *arg)
 		RwCameraSetFarClipPlane(Scene.camera, CTimeCycle::GetFarClip());
 		RwCameraSetFogDistance(Scene.camera, CTimeCycle::GetFogStart());
 #endif
-
+#if defined(PSP2) && defined(EXTENDED_COLOURFILTER)
+		RwRaster *camfb;
+		if(CPostFX::NeedBackBuffer()){
+			if(fxraster == nil){
+				int w, h;
+				for(w = 1; w < SCREEN_WIDTH; w *= 2);
+				for(h = 1; h < SCREEN_HEIGHT; h *= 2);
+				fxraster = RwRasterCreate(w, h, 0, rwRASTERTYPECAMERATEXTURE);
+				subras = RwRasterCreate(0, 0, 0, rwRASTERTYPECAMERATEXTURE);
+				rw::Rect r = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
+				subras->subRaster(fxraster, &r);
+			}
+			assert(fxraster);
+			camfb = RwCameraGetRaster(Scene.camera);
+			RwCameraSetRaster(Scene.camera, subras);
+		}
+#endif
 		if(CWeather::LightningFlash && !CCullZones::CamNoRain()){
 			if(!DoRWStuffStartOfFrame_Horizon(255, 255, 255, 255, 255, 255, 255))
 				return;
@@ -1149,7 +1172,14 @@ Idle(void *arg)
 
 		RenderDebugShit();
 		RenderEffects();
-
+#if defined(PSP2) && defined(EXTENDED_COLOURFILTER)
+		if (CPostFX::NeedBackBuffer()) {
+			RwCameraEndUpdate(Scene.camera);
+			glFinish();
+			RwCameraSetRaster(Scene.camera, camfb);
+			RwCameraBeginUpdate(Scene.camera);
+		}
+#endif
 #ifdef TIMEBARS
 		tbStartTimer(0, "RenderMotionBlur");
 #endif
@@ -1172,9 +1202,10 @@ Idle(void *arg)
 		CameraSize(Scene.camera, nil, SCREEN_VIEWWINDOW, DEFAULT_ASPECT_RATIO);
 #endif
 		CVisibilityPlugins::SetRenderWareCamera(Scene.camera);
-		RwCameraClear(Scene.camera, &gColourTop, rwCAMERACLEARZ);
 		if(!RsCameraBeginUpdate(Scene.camera))
 			return;
+		
+		RwCameraClear(Scene.camera, &gColourTop, rwCAMERACLEARZ);
 	}
 
 #ifdef PS2_SAVE_DIALOG
@@ -1240,9 +1271,9 @@ FrontendIdle(void)
 	CameraSize(Scene.camera, nil, SCREEN_VIEWWINDOW, DEFAULT_ASPECT_RATIO);
 #endif
 	CVisibilityPlugins::SetRenderWareCamera(Scene.camera);
-	RwCameraClear(Scene.camera, &gColourTop, rwCAMERACLEARZ);
 	if(!RsCameraBeginUpdate(Scene.camera))
 		return;
+	RwCameraClear(Scene.camera, &gColourTop, rwCAMERACLEARZ);
 
 	DefinedState(); // seems redundant, but breaks resolution change.
 	RenderMenus();
@@ -1520,9 +1551,9 @@ void TheGame(void)
 			{
 				CameraSize(Scene.camera, NULL, SCREEN_VIEWWINDOW, SCREEN_ASPECT_RATIO);
 				CVisibilityPlugins::SetRenderWareCamera(Scene.camera);
-				RwCameraClear(Scene.camera, &gColourTop, rwCAMERACLEARZ);
 				if (!RsCameraBeginUpdate(Scene.camera))
 					break;
+				RwCameraClear(Scene.camera, &gColourTop, rwCAMERACLEARZ);
 			}
 
 			RenderMenus();
