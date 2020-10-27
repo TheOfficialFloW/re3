@@ -95,7 +95,11 @@ int8 CMenuManager::m_PrefsVsyncDisp = 1;
 int8 CMenuManager::m_PrefsFrameLimiter = 1;
 int8 CMenuManager::m_PrefsShowSubtitles = 1;
 int8 CMenuManager::m_PrefsSpeakers;
+#ifdef PSP2
+int32 CMenuManager::m_ControlMethod = CONTROL_CLASSIC;
+#else
 int32 CMenuManager::m_ControlMethod;
+#endif
 int8 CMenuManager::m_PrefsDMA = 1;
 int32 CMenuManager::m_PrefsLanguage;
 uint8 CMenuManager::m_PrefsStereoMono; // unused except restore settings
@@ -104,7 +108,11 @@ bool CMenuManager::m_PrefsAllowNastyGame = true;
 bool CMenuManager::m_bStartUpFrontEndRequested;
 bool CMenuManager::m_bShutDownFrontEndRequested;
 
+#ifdef PSP2
+int8 CMenuManager::m_PrefsUseWideScreen = AR_AUTO;
+#else
 int8 CMenuManager::m_PrefsUseWideScreen;
+#endif
 int8 CMenuManager::m_PrefsRadioStation;
 int32 CMenuManager::m_PrefsBrightness = 256;
 float CMenuManager::m_PrefsLOD = CRenderer::ms_lodDistScale;
@@ -3389,6 +3397,8 @@ CMenuManager::LoadSettings()
 	int32 prevLang = m_PrefsLanguage;
 #ifdef GTA3_1_1_PATCH
 	CMBlur::BlurOn = (_dwOperatingSystemVersion != OS_WIN98);
+#elif defined(PSP2)
+	CMBlur::BlurOn = false;
 #else
 	CMBlur::BlurOn = true;
 #endif
