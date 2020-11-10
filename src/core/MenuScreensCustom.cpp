@@ -12,6 +12,10 @@
 #include "RwHelper.h"
 #include "Text.h"
 
+#ifdef PSP2
+extern bool gPostFX;
+#endif
+
 // Menu screens array is at the bottom of the file.
 
 #ifdef PC_MENU
@@ -52,6 +56,9 @@
 	#define POSTFX_SELECTORS \
 		MENUACTION_CFO_SELECT, "FED_CLF", { new CCFOSelect((int8*)&CPostFX::EffectSwitch, "ColourFilter", filterNames, ARRAY_SIZE(filterNames), false, nil) }, \
 		MENUACTION_CFO_SELECT, "FED_MBL", { new CCFOSelect((int8*)&CPostFX::MotionBlurOn, "MotionBlur", off_on, 2, false, nil) },
+#elif defined(PSP2)
+	#define POSTFX_SELECTORS \
+		MENUACTION_CFO_SELECT, "FED_CLF", { new CCFOSelect((int8*)&gPostFX, "ColourFilter", off_on, 2, false, nil) },
 #else
 	#define POSTFX_SELECTORS
 #endif	
@@ -76,6 +83,9 @@ void RestoreDefGraphics(int8 action) {
 
 	#ifdef PS2_ALPHA_TEST
 		gPS2alphaTest = false;
+	#endif
+	#ifdef PSP2
+		gPostFX = false;
 	#endif
 	#ifdef MULTISAMPLING
 		FrontEndMenuManager.m_nPrefsMSAALevel = FrontEndMenuManager.m_nDisplayMSAALevel = 0;
@@ -754,6 +764,9 @@ CMenuScreenCustom aScreens[MENUPAGES] = {
 		MENUACTION_FRAMELIMIT,	"FEM_FRM", { nil, SAVESLOT_NONE, MENUPAGE_DISPLAY_SETTINGS },
 		MULTISAMPLING_SELECTOR
 #ifdef EXTENDED_COLOURFILTER
+		POSTFX_SELECTORS
+#elif defined(PSP2)
+		MENUACTION_TRAILS,		"FED_TRA", { nil, SAVESLOT_NONE, MENUPAGE_DISPLAY_SETTINGS },
 		POSTFX_SELECTORS
 #else
 		MENUACTION_TRAILS,		"FED_TRA", { nil, SAVESLOT_NONE, MENUPAGE_DISPLAY_SETTINGS },
