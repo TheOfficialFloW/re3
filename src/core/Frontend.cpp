@@ -1001,7 +1001,6 @@ CMenuManager::Draw()
 	float smallestSliderBar = lineHeight * 0.1f;
 	bool foundTheHoveringItem = false;
 	wchar unicodeTemp[64];
-	wchar unicodeSpace[4];
 	char asciiTemp[32];
 
 #ifdef MENU_MAP
@@ -1152,9 +1151,9 @@ CMenuManager::Draw()
 			}
 			case MENUACTION_CTRLVIBRATION:
 #ifdef PSP2
-				UnicodeStrcpy(unicodeTemp, TheText.Get("FEC_VIB"));
-				AsciiToUnicode(" ",unicodeSpace);
-				UnicodeStrcat(unicodeTemp, unicodeSpace);
+				strcpy(asciiTemp, UnicodeToAscii(TheText.Get("FEC_VIB")));
+				strcat(asciiTemp, " ");
+				AsciiToUnicode(strupr(asciiTemp),unicodeTemp);
 				UnicodeStrcat(unicodeTemp, m_PrefsUseVibration ? TheText.Get("FEM_ON") : TheText.Get("FEM_OFF"));
 				leftText = unicodeTemp;
 #else
