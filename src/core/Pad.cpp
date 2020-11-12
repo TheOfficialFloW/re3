@@ -1134,6 +1134,28 @@ void CPad::Update(int16 pad)
 {
 	OldState = NewState;
 
+#ifdef PSP2
+	if ( ShakeDur )
+	{
+		ShakeDur = Max((int32_t)ShakeDur - (int32_t)CTimer::GetTimeStepInMilliseconds(), 0);
+
+		if ( ShakeDur == 0 )
+		{
+			SceCtrlActuator handle;
+			handle.small = 0;
+			handle.large = 0;
+			sceCtrlSetActuator(pad + 1, &handle);
+		}
+		else
+		{
+			SceCtrlActuator handle;
+			handle.small = 0;
+			handle.large = (unsigned char)ShakeFreq;
+			sceCtrlSetActuator(pad + 1, &handle);
+		}
+	}
+#endif
+
 #ifdef GTA_PS2
 	bObsoleteControllerMessage = false;
 

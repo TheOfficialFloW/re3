@@ -1001,6 +1001,7 @@ CMenuManager::Draw()
 	float smallestSliderBar = lineHeight * 0.1f;
 	bool foundTheHoveringItem = false;
 	wchar unicodeTemp[64];
+	wchar unicodeSpace[4];
 	char asciiTemp[32];
 
 #ifdef MENU_MAP
@@ -1150,10 +1151,18 @@ CMenuManager::Draw()
 				break;
 			}
 			case MENUACTION_CTRLVIBRATION:
+#ifdef PSP2
+				UnicodeStrcpy(unicodeTemp, TheText.Get("FEC_VIB"));
+				AsciiToUnicode(" ",unicodeSpace);
+				UnicodeStrcat(unicodeTemp, unicodeSpace);
+				UnicodeStrcat(unicodeTemp, m_PrefsUseVibration ? TheText.Get("FEM_ON") : TheText.Get("FEM_OFF"));
+				leftText = unicodeTemp;
+#else
 				if (m_PrefsUseVibration)
 					rightText = TheText.Get("FEM_ON");
 				else
 					rightText = TheText.Get("FEM_OFF");
+#endif
 				break;
 			case MENUACTION_CTRLCONFIG:
 				switch (CPad::GetPad(0)->Mode) {
