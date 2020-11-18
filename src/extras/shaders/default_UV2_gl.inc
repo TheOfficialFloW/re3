@@ -1,14 +1,10 @@
 const char *default_UV2_vert_src =
-"layout(location = 0) in vec3 in_pos;\n"
-"layout(location = 1) in vec3 in_normal;\n"
-"layout(location = 2) in vec4 in_color;\n"
-"layout(location = 3) in vec2 in_tex0;\n"
-"layout(location = 4) in vec2 in_tex1;\n"
+"VSIN(ATTRIB_POS)	vec3 in_pos;\n"
 
-"out vec4 v_color;\n"
-"out vec2 v_tex0;\n"
-"out vec2 v_tex1;\n"
-"out float v_fog;\n"
+"VSOUT vec4 v_color;\n"
+"VSOUT vec2 v_tex0;\n"
+"VSOUT vec2 v_tex1;\n"
+"VSOUT float v_fog;\n"
 
 "void\n"
 "main(void)\n"

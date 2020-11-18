@@ -177,6 +177,7 @@ enum Config {
 #	define GTA_PS2_STUFF
 #	define RANDOMSPLASH
 #	define VU_COLLISION
+#	define ANIM_COMPRESSION
 #elif defined GTA_PC
 #	define GTA3_1_1_PATCH
 //#	define GTA3_STEAM_PATCH
@@ -212,10 +213,15 @@ enum Config {
 #	define TIMEBARS		// print debug timers
 #endif
 
-#define FIX_BUGS		// fixes bugs that we've came across during reversing, TODO: use this more
+#define FIX_BUGS		// fixes bugs that we've came across during reversing
 #define MORE_LANGUAGES		// Add more translations to the game
 #define COMPATIBLE_SAVES // this allows changing structs while keeping saves compatible
-#define LOAD_INI_SETTINGS
+#define LOAD_INI_SETTINGS // as the name suggests. fundamental for CUSTOM_FRONTEND_OPTIONS
+
+// Just debug menu entries
+#ifdef DEBUGMENU
+#define MISSION_SWITCHER // from debug menu
+#endif
 
 // Rendering/display
 #define EXTRA_MODEL_FLAGS	// from mobile to optimize rendering
@@ -226,17 +232,11 @@ enum Config {
 #define USE_TXD_CDIMAGE		// generate and load textures from txd.img
 // #define PS2_ALPHA_TEST		// emulate ps2 alpha test 
 #define IMPROVED_VIDEOMODE	// save and load videomode parameters instead of a magic number
-//#define DISABLE_LOADING_SCREEN // disable the loading screen which vastly improves the loading time
-// #define NO_ISLAND_LOADING  // disable loadscreen between islands via loading all island data at once, consumes more memory and CPU
+#define DISABLE_LOADING_SCREEN // disable the loading screen which vastly improves the loading time
 //#define USE_TEXTURE_POOL
-#define CUTSCENE_BORDERS_SWITCH
+#ifdef LIBRW
 //#define EXTENDED_COLOURFILTER		// more options for colour filter (replaces mblur)
 //#define EXTENDED_PIPELINES		// custom render pipelines (includes Neo)
-#define MULTISAMPLING		// adds MSAA option
-
-#ifdef LIBRW
-// these are not supported with librw yet
-#	undef MULTISAMPLING
 #endif
 
 // Particle
@@ -256,6 +256,7 @@ enum Config {
 #define ALT_DODO_CHEAT
 #define REGISTER_START_BUTTON
 //#define BIND_VEHICLE_FIREWEAPON // Adds ability to rebind fire key for 'in vehicle' controls
+#define BUTTON_ICONS // use textures to show controller buttons
 
 // Hud, frontend and radar
 #define HUD_ENHANCEMENTS	// Adjusts some aspects to make the HUD look/behave a little bit better.
@@ -274,7 +275,14 @@ enum Config {
 //#	define PS2_LIKE_MENU	// An effort to recreate PS2 menu, cycling through tabs, different bg etc.
 //#	define PS2_SAVE_DIALOG		// PS2 style save dialog with transparent black box
 #	define CUSTOM_FRONTEND_OPTIONS
-#	define GRAPHICS_MENU_OPTIONS // otherwise Advanced Options menu will appear if Display is full
+
+#	ifdef CUSTOM_FRONTEND_OPTIONS
+#		define GRAPHICS_MENU_OPTIONS // otherwise Advanced Options menu will appear if Display is full
+#		define NO_ISLAND_LOADING  // disable loadscreen between islands via loading all island data at once, consumes more memory and CPU
+#		define CUTSCENE_BORDERS_SWITCH
+#		define MULTISAMPLING		// adds MSAA option
+#		define INVERT_LOOK_FOR_PAD // add bInvertLook4Pad from VC
+#	endif
 #endif
 
 // Script
@@ -323,6 +331,8 @@ enum Config {
 #endif
 //#define PS2_AUDIO   // changes audio paths for cutscenes and radio to PS2 paths, needs vbdec to support VB with MSS
 
+// IMG
+#define BIG_IMG // allows to read larger img files
 
 //#define SQUEEZE_PERFORMANCE
 #ifdef SQUEEZE_PERFORMANCE
@@ -330,4 +340,9 @@ enum Config {
 	#undef NO_ISLAND_LOADING
 	#define PC_PARTICLE
 	#define VC_PED_PORTS // To not process collisions always. But should be tested if that's really beneficial
+#endif
+
+#ifdef LIBRW
+// these are not supported with librw yet
+#	undef MULTISAMPLING
 #endif

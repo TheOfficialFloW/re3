@@ -9,16 +9,13 @@ const char *neoVehicle_vert_src =
 "#define shininess (u_reflProps.z)\n"
 "#define specularity (u_reflProps.w)\n"
 
-"layout(location = 0) in vec3 in_pos;\n"
-"layout(location = 1) in vec3 in_normal;\n"
-"layout(location = 2) in vec4 in_color;\n"
-"layout(location = 3) in vec2 in_tex0;\n"
+"VSIN(ATTRIB_POS)	vec3 in_pos;\n"
 
-"out vec4 v_color;\n"
-"out vec4 v_reflcolor;\n"
-"out vec2 v_tex0;\n"
-"out vec2 v_tex1;\n"
-"out float v_fog;\n"
+"VSOUT vec4 v_color;\n"
+"VSOUT vec4 v_reflcolor;\n"
+"VSOUT vec2 v_tex0;\n"
+"VSOUT vec2 v_tex1;\n"
+"VSOUT float v_fog;\n"
 
 "vec3 DoDirLightSpec(vec3 Ldir, vec3 Lcol, vec3 N, vec3 V, float power)\n"
 "{\n"

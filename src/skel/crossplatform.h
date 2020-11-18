@@ -68,6 +68,10 @@
 #define GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER 5
 #define GLFW_GAMEPAD_AXIS_LAST          GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER
 
+#define GLFW_CURSOR                 0x00033001
+#define GLFW_CURSOR_HIDDEN          0x00034002
+#define GLFW_CURSOR_DISABLED        0x00034003
+
 typedef struct GLFWgamepadstate
 {
     unsigned char buttons[15];
@@ -96,6 +100,7 @@ unsigned char* glfwGetJoystickButtons(int jid, int* count);
 int glfwJoystickIsGamepad(int jid);
 const char* glfwGetJoystickName(int jid);
 int glfwGetGamepadState(int jid, GLFWgamepadstate* state);
+void glfwSetInputMode(GLFWwindow* handle, int mode, int value);
 
 #define CLOCK_MONOTONIC 0
 

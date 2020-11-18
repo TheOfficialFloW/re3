@@ -6,16 +6,11 @@ const char *neoRimSkin_vert_src =
 "uniform vec4 u_rampEnd;\n"
 "uniform vec3 u_rimData;\n"
 
-"layout(location = 0) in vec3 in_pos;\n"
-"layout(location = 1) in vec3 in_normal;\n"
-"layout(location = 2) in vec4 in_color;\n"
-"layout(location = 3) in vec2 in_tex0;\n"
-"layout(location = 11) in vec4 in_weights;\n"
-"layout(location = 12) in vec4 in_indices;\n"
+"VSIN(ATTRIB_POS)	vec3 in_pos;\n"
 
-"out vec4 v_color;\n"
-"out vec2 v_tex0;\n"
-"out float v_fog;\n"
+"VSOUT vec4 v_color;\n"
+"VSOUT vec2 v_tex0;\n"
+"VSOUT float v_fog;\n"
 
 "void\n"
 "main(void)\n"

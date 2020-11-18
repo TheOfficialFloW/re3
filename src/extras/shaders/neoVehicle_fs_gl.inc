@@ -2,13 +2,11 @@ const char *neoVehicle_frag_src =
 "uniform sampler2D tex0;\n"
 "uniform sampler2D tex1;\n"
 
-"in vec4 v_color;\n"
-"in vec4 v_reflcolor;\n"
-"in vec2 v_tex0;\n"
-"in vec2 v_tex1;\n"
-"in float v_fog;\n"
-
-"out vec4 color;\n"
+"FSIN vec4 v_color;\n"
+"FSIN vec4 v_reflcolor;\n"
+"FSIN vec2 v_tex0;\n"
+"FSIN vec2 v_tex1;\n"
+"FSIN float v_fog;\n"
 
 "void\n"
 "main(void)\n"
@@ -21,10 +19,13 @@ const char *neoVehicle_frag_src =
 
 "	vec3 pass2 = v_reflcolor.rgb * v_fog;\n"
 
+"	vec4 color;\n"
 "	color.rgb = pass1.rgb*pass1.a + pass2;\n"
 "	color.a = pass1.a;\n"
 
 "//	color.rgb = mix(u_fogColor.rgb, color.rgb, v_fog);\n"
 "	DoAlphaTest(color.a);\n"
+
+"	FRAGCOLOR(color);\n"
 "}\n"
 ;

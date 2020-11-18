@@ -151,6 +151,11 @@ const GLFWvidmode* glfwGetVideoMode(GLFWmonitor* monitor)
 	return &gVideoMode;
 }
 
+void glfwSetInputMode(GLFWwindow* handle, int mode, int value)
+{
+	return;
+}
+
 int clock_gettime(int clk_id, struct timespec *tp)
 {
 	if (clk_id == CLOCK_MONOTONIC) {

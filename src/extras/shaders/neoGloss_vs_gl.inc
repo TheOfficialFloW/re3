@@ -1,16 +1,12 @@
 const char *neoGloss_vert_src =
 "uniform vec3 u_eye;\n"
 
+"VSIN(ATTRIB_POS)	vec3 in_pos;\n"
 
-"layout(location = 0) in vec3 in_pos;\n"
-"layout(location = 1) in vec3 in_normal;\n"
-"layout(location = 2) in vec4 in_color;\n"
-"layout(location = 3) in vec2 in_tex0;\n"
-
-"out vec3 v_normal;\n"
-"out vec3 v_light;\n"
-"out vec2 v_tex0;\n"
-"out float v_fog;\n"
+"VSOUT vec3 v_normal;\n"
+"VSOUT vec3 v_light;\n"
+"VSOUT vec2 v_tex0;\n"
+"VSOUT float v_fog;\n"
 
 "void\n"
 "main(void)\n"

@@ -5,17 +5,15 @@ const char *neoGloss_frag_src =
 
 "#define glossMult (u_reflProps.x)\n"
 
-"in vec3 v_normal;\n"
-"in vec3 v_light;\n"
-"in vec2 v_tex0;\n"
-"in float v_fog;\n"
-
-"out vec4 color;\n"
+"FSIN vec3 v_normal;\n"
+"FSIN vec3 v_light;\n"
+"FSIN vec2 v_tex0;\n"
+"FSIN float v_fog;\n"
 
 "void\n"
 "main(void)\n"
 "{\n"
-"	color = texture(tex0, vec2(v_tex0.x, 1.0-v_tex0.y));\n"
+"	vec4 color = texture(tex0, vec2(v_tex0.x, 1.0-v_tex0.y));\n"
 "	vec3 n = 2.0*v_normal-1.0;            // unpack\n"
 "	vec3 v = 2.0*v_light-1.0;             //\n"
 
@@ -23,6 +21,8 @@ const char *neoGloss_frag_src =
 "	color = s*s*s*s*s*s*s*s*color*v_fog*glossMult;\n"
 
 "	DoAlphaTest(color.a);\n"
+
+"	FRAGCOLOR(color);\n"
 "}\n"
 
 ;

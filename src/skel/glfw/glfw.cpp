@@ -250,8 +250,10 @@ double
 psTimer(void)
 {
 	struct timespec start; 
-#ifdef __linux__
+#if defined(CLOCK_MONOTONIC_RAW)
 	clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+#elif defined(CLOCK_MONOTONIC_FAST)
+	clock_gettime(CLOCK_MONOTONIC_FAST, &start);
 #else
 	clock_gettime(CLOCK_MONOTONIC, &start);
 #endif
@@ -904,7 +906,7 @@ void psPostRWinit(void)
 
 #if !defined(PSP2)
 	glfwSetKeyCallback(PSGLOBAL(window), keypressCB);
-	glfwSetWindowSizeCallback(PSGLOBAL(window), resizeCB);
+	glfwSetFramebufferSizeCallback(PSGLOBAL(window), resizeCB);
 	glfwSetScrollCallback(PSGLOBAL(window), scrollCB);
 	glfwSetCursorPosCallback(PSGLOBAL(window), cursorCB);
 	glfwSetCursorEnterCallback(PSGLOBAL(window), cursorEnterCB);
@@ -1433,8 +1435,13 @@ _InputTranslateShiftKeyUpDown(RsKeyCodes *rs) {
 // TODO this only works in frontend(and luckily only frontend use this). Fun fact: if I get pos manually in game, glfw reports that it's > 32000
 void
 cursorCB(GLFWwindow* window, double xpos, double ypos) {
-	FrontEndMenuManager.m_nMouseTempPosX = xpos;
-	FrontEndMenuManager.m_nMouseTempPosY = ypos;
+	if (!FrontEndMenuManager.m_bMenuActive)
+		return;
+	
+	int winw, winh;
+	glfwGetWindowSize(PSGLOBAL(window), &winw, &winh);
+	FrontEndMenuManager.m_nMouseTempPosX = xpos * (RsGlobal.maximumWidth / winw);
+	FrontEndMenuManager.m_nMouseTempPosY = ypos * (RsGlobal.maximumHeight / winh);
 }
 
 void
