@@ -149,7 +149,7 @@ RwTexDictionaryGtaStreamRead2(RwStream *stream, RwTexDictionary *texDict)
 	return texDict;
 }
 
-#if defined(GTA_PC) && !defined(PSP2)
+#if defined(GTA_PC)
 
 #ifdef LIBRW
 
@@ -171,7 +171,7 @@ GetGPUcaps(GPUcaps *caps)
 	caps->subplatform = 0;
 	caps->dxtSupport = 0;
 	// TODO: more later
-#ifdef RW_GL3
+#if defined(RW_GL3) && !defined(PSP2)
 	caps->subplatform = rw::gl3::gl3Caps.gles;
 	caps->dxtSupport = rw::gl3::gl3Caps.dxtSupported;
 #endif
@@ -363,6 +363,7 @@ CreateTxdImageForVideoCard()
 	ConvertNativeTXD("models\\hud.txd");
 	ConvertNativeTXD("models\\MISC.TXD");
 	ConvertNativeTXD("models\\particle.txd");
+	ConvertNativeTXD("models\\x360btns.txd");
 	ConvertNativeTXD("txd\\mainsc1.txd");
 	ConvertNativeTXD("txd\\mainsc2.txd");
 	ConvertNativeTXD("txd\\NEWS.TXD");
