@@ -2691,7 +2691,7 @@ const char *PlayStationButtons[][MAX_CONTROLLERACTIONS] =
 
 void CControllerConfigManager::GetWideStringOfCommandKeys(uint16 action, wchar *text, uint16 leight)
 {
-#if defined(DETECT_PAD_INPUT_SWITCH) && !defined(PSP2)
+#if defined(DETECT_PAD_INPUT_SWITCH)
 	if (CPad::GetPad(0)->IsAffectedByController) {
 		wchar wstr[16];
 
