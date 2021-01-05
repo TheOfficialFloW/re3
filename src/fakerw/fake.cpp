@@ -299,38 +299,12 @@ RwTextureAddressMode RwTextureGetAddressingV(const RwTexture *texture);
 // TODO
 void _rwD3D8TexDictionaryEnableRasterFormatConversion(bool enable) { }
 
-#ifdef PSP2
-static rw::Raster*
-ConvertTexRaster(rw::Raster *ras)
-{
-	using namespace rw;
-
-	if(ras->platform == rw::platform)
-		return ras;
-	// compatible platforms
-	if(ras->platform == PLATFORM_D3D8 && rw::platform == PLATFORM_D3D9 ||
-	   ras->platform == PLATFORM_D3D9 && rw::platform == PLATFORM_D3D8)
-		return ras;
-
-	Image *img = ras->toImage();
-	ras->destroy();
-	img->unpalettize();
-	ras = Raster::createFromImage(img);
-	img->destroy();
-	return ras;
-}
-#endif
-
 // hack for reading native textures
 RwBool rwNativeTextureHackRead(RwStream *stream, RwTexture **tex, RwInt32 size)
 {
 	*tex = Texture::streamReadNative(stream);
 #if defined(LIBRW)
-#ifdef PSP2
-	(*tex)->raster = ConvertTexRaster((*tex)->raster);
-#else
 	(*tex)->raster = rw::Raster::convertTexToCurrentPlatform((*tex)->raster);
-#endif
 #endif
 	return *tex != nil;
 }
