@@ -2,9 +2,6 @@
 
 extern bool gPS2alphaTest;
 
-void *RwMallocAlign(RwUInt32 size, RwUInt32 align);
-void RwFreeAlign(void *mem);
-
 void OpenCharsetSafe();
 void CreateDebugFont();
 void DestroyDebugFont();
@@ -53,8 +50,6 @@ RwCamera *CameraCreate(RwInt32 width,
                        RwBool zBuffer);
 
 					   
-void _TexturePoolsInitialise();
-void _TexturePoolsShutdown();
 
 RpAtomic *ConvertPlatformAtomic(RpAtomic *atomic, void *data);
 

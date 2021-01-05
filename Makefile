@@ -2,8 +2,8 @@ TITLE		:=	"Grand Theft Auto III"
 TITLE_ID	:=	GTA300000
 TARGET		:=	GTA3
 
-SOURCES		:=	src src/animation src/audio src/audio/oal src/audio/eax src/control src/collision src/core src/entities src/math src/modelinfo src/objects src/peds src/render src/rw src/save src/skel src/skel/glfw src/text src/vehicles src/weapons src/extras src/fakerw
-INCLUDES	:=	src src/animation src/audio src/audio/oal src/audio/eax src/control src/collision src/core src/entities src/math src/modelinfo src/objects src/peds src/render src/rw src/save src/skel src/skel/glfw src/text src/vehicles src/weapons src/extras src/fakerw librw
+SOURCES		:=	src src/animation src/audio src/audio/oal src/audio/eax src/buildings src/control src/collision src/core src/entities src/math src/modelinfo src/objects src/peds src/render src/rw src/save src/skel src/skel/glfw src/text src/vehicles src/weapons src/extras src/fakerw
+INCLUDES	:=	src src/animation src/audio src/audio/oal src/audio/eax src/buildings src/control src/collision src/core src/entities src/math src/modelinfo src/objects src/peds src/render src/rw src/save src/skel src/skel/glfw src/text src/vehicles src/weapons src/extras src/fakerw librw
 
 CFILES		:=	$(foreach dir,$(SOURCES), $(wildcard $(dir)/*.c))
 CPPFILES	:=	$(foreach dir,$(SOURCES), $(wildcard $(dir)/*.cpp))

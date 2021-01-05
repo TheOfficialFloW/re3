@@ -46,7 +46,7 @@ public:
 	eAudioType m_nType;
 	void *m_pEntity;
 	bool m_bIsUsed;
-	uint8 m_nStatus;
+	uint8 m_bStatus;
 	int16 m_awAudioEvent[NUM_AUDIOENTITY_EVENTS];
 	float m_afVolume[NUM_AUDIOENTITY_EVENTS];
 	uint8 m_AudioEvents;
@@ -132,6 +132,13 @@ public:
 	bool m_bDistanceCalculated;
 	float m_fDistance;
 	CPed *m_pPed;
+
+	cPedParams()
+	{
+		m_bDistanceCalculated = false;
+		m_fDistance = 0.0f;
+		m_pPed = nil;
+	}
 };
 
 class cVehicleParams
@@ -143,6 +150,16 @@ public:
 	cTransmission *m_pTransmission;
 	int32 m_nIndex;
 	float m_fVelocityChange;
+
+	cVehicleParams()
+	{
+		m_bDistanceCalculated = false;
+		m_fDistance = 0.0f;
+		m_pVehicle = nil;
+		m_pTransmission = nil;
+		m_nIndex = 0;
+		m_fVelocityChange = 0.0f;
+	}
 };
 
 VALIDATE_SIZE(cVehicleParams, 0x18);
@@ -168,7 +185,7 @@ class cAudioManager
 {
 public:
 	bool m_bIsInitialised;
-	uint8 field_1; // unused
+	bool m_bReverb; // unused
 	bool m_bFifthFrameFlag;
 	uint8 m_nActiveSamples;
 	uint8 field_4; // unused
@@ -351,7 +368,7 @@ public:
 	bool MissionScriptAudioUsesPoliceChannel(int32 soundMission) const;
 
 	void PlayLoadedMissionAudio();
-	void PlayOneShot(int32 index, int16 sound, float vol);
+	void PlayOneShot(int32 index, uint16 sound, float vol);
 	void PlaySuspectLastSeen(float x, float y, float z);
 	void PlayerJustGotInCar() const;
 	void PlayerJustLeftCar() const;
@@ -397,8 +414,8 @@ public:
 	void ProcessModelCarEngine(cVehicleParams& params);
 	void ProcessOneShotScriptObject(uint8 sound);
 	void ProcessPed(CPhysical *ped);
-	void ProcessPedHeadphones(cPedParams *params);
-	void ProcessPedOneShots(cPedParams *params);
+	void ProcessPedHeadphones(cPedParams &params);
+	void ProcessPedOneShots(cPedParams &params);
 	void ProcessPhysical(int32 id);
 	void ProcessPlane(cVehicleParams& params);
 	void ProcessPlayersVehicleEngine(cVehicleParams& params, CAutomobile *automobile);
@@ -462,7 +479,7 @@ public:
 	bool SetupJumboRumbleSound(uint8 emittingVol);
 	bool SetupJumboTaxiSound(uint8 vol);
 	bool SetupJumboWhineSound(uint8 emittingVol, uint32 freq);
-	void SetupPedComments(cPedParams *params, uint32 sound);
+	void SetupPedComments(cPedParams &params, uint16 sound);
 	void SetupSuspectLastSeenReport();
 
 	void Terminate();

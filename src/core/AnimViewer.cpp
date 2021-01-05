@@ -45,11 +45,11 @@ CEntity *CAnimViewer::pTarget = nil;
 void
 CAnimViewer::Render(void) {
 	if (pTarget) {
-//		pTarget->GetPosition() = CVector(0.0f, 0.0f, 0.0f);
+//		pTarget->GetPosition() = CVector(0.0f, 0.0f, 0.0f); // Only on Mobile
 		if (pTarget) {
 #ifdef FIX_BUGS
 #ifdef PED_SKIN
-			if(pTarget->IsPed())
+			if(pTarget->IsPed() && IsClumpSkinned(pTarget->GetClump()))
 				((CPed*)pTarget)->UpdateRpHAnim();
 #endif
 #endif
@@ -61,7 +61,9 @@ CAnimViewer::Render(void) {
 
 void
 CAnimViewer::Initialise(void) {
-	LoadingScreen("Loading the ModelViewer", "", GetRandomSplashScreen());
+	// we need messages, messages needs hud, hud needs this
+	CHud::m_Wants_To_Draw_Hud = false;
+
 	animTxdSlot = CTxdStore::AddTxdSlot("generic");
 	CTxdStore::Create(animTxdSlot);
 	int hudSlot = CTxdStore::AddTxdSlot("hud");
@@ -74,9 +76,6 @@ CAnimViewer::Initialise(void) {
 	TheCamera.Init();
 	TheCamera.SetRwCamera(Scene.camera);
 	TheCamera.Cams[TheCamera.ActiveCam].Distance = 5.0f;
-
-	gbModelViewer = true;
-	CHud::m_Wants_To_Draw_Hud = false;
 
 	ThePaths.Init();
 	ThePaths.AllocatePathFindInfoMem(4500);
@@ -100,6 +99,9 @@ CAnimViewer::Initialise(void) {
 	CRadar::Initialise();
 	CRadar::LoadTextures();
 	CVehicleModelInfo::LoadVehicleColours();
+#ifdef FIX_BUGS
+	CVehicleModelInfo::LoadEnvironmentMaps();
+#endif
 	CAnimManager::LoadAnimFiles();
 	CWorld::PlayerInFocus = 0;
 	CWeapon::InitialiseWeapons();
@@ -110,7 +112,7 @@ CAnimViewer::Initialise(void) {
 	CTimeCycle::Initialise();
 	CCarCtrl::Init();
 	CPlayerPed *player = new CPlayerPed();
-	player->SetPosition(0.0f, 0.0f, 0.0f);
+	player->SetPosition(0.0f, 0.0f, 0.0f); // This is 1000.f for all axes on Xbox, but 0.f on mobile?
 	CWorld::Players[0].m_pPed = player;
 	CDraw::SetFOV(120.0f);
 	CDraw::ms_fLODDistance = 500.0f;
@@ -219,8 +221,7 @@ CAnimViewer::Update(void)
 {
 	static int modelId = 0;
 	static int animId = 0;
-	// Please don't make this bool, static bool's are problematic on my side.
-	static int reloadIFP = 0;
+	static bool reloadIFP = false;
 
 	AssocGroupId animGroup = ASSOCGRP_STD;
 	int nextModelId = modelId;
@@ -245,7 +246,7 @@ CAnimViewer::Update(void)
 			CAnimManager::Initialise();
 			CAnimManager::LoadAnimFiles();
 
-			reloadIFP = 0;
+			reloadIFP = false;
 		}
 	} else {
 		animGroup = ASSOCGRP_STD;
@@ -294,14 +295,20 @@ CAnimViewer::Update(void)
 		if (pTarget->IsVehicle() || pTarget->IsPed() || pTarget->IsObject()) {
 			((CPhysical*)pTarget)->m_vecMoveSpeed = CVector(0.0f, 0.0f, 0.0f);
 		}
+#ifdef FIX_BUGS
+		// so we don't end up in the water
+		pTarget->GetMatrix().GetPosition().z = 10.0f;
+#else
 		pTarget->GetMatrix().GetPosition().z = 0.0f;
+
+#endif
 
 		if (modelInfo->GetModelType() == MITYPE_PED) {
 			((CPed*)pTarget)->bKindaStayInSamePlace = true;
 
 			// Triangle in mobile
 			if (pad->GetSquareJustDown()) {
-				reloadIFP = 1;
+				reloadIFP = true;
 				AsciiToUnicode("IFP reloaded", gUString);
 				CMessages::AddMessage(gUString, 1000, 0);
 

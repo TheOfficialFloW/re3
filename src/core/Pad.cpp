@@ -937,7 +937,7 @@ void CPad::AddToPCCheatString(char c)
 	if ( !_CHEATCMP("GNIROOOOOB") )
 		SlowTimeCheat();
 
-#ifndef GTA3_1_1_PATCH
+#if GTA_VERSION < GTA3_PC_11
 	// "TURTOISE"
 	if ( !_CHEATCMP("ESIOTRUT") )
 		ArmourCheat();
@@ -1109,14 +1109,11 @@ void CPad::UpdatePads(void)
 		bUpdate = false;
 
 	if ( bUpdate )
-	{
 		GetPad(0)->Update(0);
-#ifndef SQUEEZE_PERFORMANCE
-		GetPad(1)->Update(0);
-#endif
-	}
 
-#if defined(MASTER) && !defined(XINPUT)
+#ifndef MASTER
+	GetPad(1)->Update(1);
+#else
 	GetPad(1)->NewState.Clear();
 	GetPad(1)->OldState.Clear();
 #endif
@@ -2629,10 +2626,18 @@ void CPad::PrintErrorMessage(void)
 {
 	if ( bDisplayNoControllerMessage && !CGame::playingIntro && !FrontEndMenuManager.m_bMenuActive )
 	{
+#ifdef FIX_BUGS
+		CFont::SetScale(SCREEN_SCALE_X(0.85f), SCREEN_SCALE_Y(1.0f));
+#else
 		CFont::SetScale(0.85f, 1.0f);
+#endif
 		CFont::SetJustifyOff();
 		CFont::SetBackgroundOff();
-		CFont::SetCentreSize(SCREEN_SCALE_X(SCREEN_WIDTH - 20));
+#ifdef FIX_BUGS
+		CFont::SetCentreSize(SCREEN_SCALE_X(DEFAULT_SCREEN_WIDTH - 20));
+#else
+		CFont::SetCentreSize(SCREEN_WIDTH - 20);
+#endif
 		CFont::SetCentreOn();
 		CFont::SetPropOn();
 		CFont::SetColor(CRGBA(255, 255, 200, 200));
@@ -2646,10 +2651,18 @@ void CPad::PrintErrorMessage(void)
 	}
 	else if ( bObsoleteControllerMessage )
 	{
+#ifdef FIX_BUGS
+		CFont::SetScale(SCREEN_SCALE_X(0.85f), SCREEN_SCALE_Y(1.0f));
+#else
 		CFont::SetScale(0.85f, 1.0f);
+#endif
 		CFont::SetJustifyOff();
 		CFont::SetBackgroundOff();
-		CFont::SetCentreSize(SCREEN_SCALE_X(SCREEN_WIDTH - 20));
+#ifdef FIX_BUGS
+		CFont::SetCentreSize(SCREEN_SCALE_X(DEFAULT_SCREEN_WIDTH - 20));
+#else
+		CFont::SetCentreSize(SCREEN_WIDTH - 20);
+#endif
 		CFont::SetCentreOn();
 		CFont::SetPropOn();
 		CFont::SetColor(CRGBA(255, 255, 200, 200));

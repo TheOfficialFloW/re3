@@ -108,12 +108,12 @@ enum RwCorePluginID
 
 //struct RwObject;
 typedef rw::Object RwObject;
+typedef rw::Frame RwFrame;
 
 typedef RwObject *(*RwObjectCallBack)(RwObject *object, void *data);
 
 RwUInt8 RwObjectGetType(const RwObject *obj);
-
-
+RwFrame* rwObjectGetParent(const RwObject *obj);
 
 #define rwsprintf   sprintf
 #define rwvsprintf  vsprintf
@@ -141,15 +141,15 @@ RwUInt8 RwObjectGetType(const RwObject *obj);
  ***********************************************
  */
 
-struct RwMemoryFunctions;
-/*
+struct RwMemoryFunctions
 {
+	// NB: from RW 3.6 on the allocating functions take
+	// a hint parameter!
 	void *(*rwmalloc)(size_t size);
 	void  (*rwfree)(void *mem);
 	void *(*rwrealloc)(void *mem, size_t newSize);
 	void *(*rwcalloc)(size_t numObj, size_t sizeObj);
 };
-*/
 
 void *RwMalloc(size_t size);
 void  RwFree(void *mem);

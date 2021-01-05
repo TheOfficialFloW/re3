@@ -234,6 +234,7 @@ project "re3"
 	files { addSrcFiles("src/audio") }
 	files { addSrcFiles("src/audio/eax") }
 	files { addSrcFiles("src/audio/oal") }
+	files { addSrcFiles("src/buildings") }
 	files { addSrcFiles("src/collision") }
 	files { addSrcFiles("src/control") }
 	files { addSrcFiles("src/core") }
@@ -257,6 +258,7 @@ project "re3"
 	includedirs { "src/audio" }
 	includedirs { "src/audio/eax" }
 	includedirs { "src/audio/oal" }
+	includedirs { "src/buildings" }
 	includedirs { "src/collision" }
 	includedirs { "src/control" }
 	includedirs { "src/core" }
@@ -283,8 +285,8 @@ project "re3"
 
 	filter "platforms:*mss"
 		defines { "AUDIO_MSS" }
-		includedirs { "sdk/milessdk/include" }
-		libdirs { "sdk/milessdk/lib" }
+		includedirs { "vendor/milessdk/include" }
+		libdirs { "vendor/milessdk/lib" }
 	
 	if _OPTIONS["with-opus"] then
 		filter "platforms:win*"
@@ -310,7 +312,10 @@ project "re3"
 		linkoptions "/SAFESEH:NO"
 		characterset ("MBCS")
 		targetextension ".exe"
-		staticruntime "on"
+		if(_OPTIONS["with-librw"]) then
+			-- external librw is dynamic
+			staticruntime "on"
+		end
 
 	filter "platforms:win*glfw*"
 		staticruntime "off"

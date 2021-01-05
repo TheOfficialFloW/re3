@@ -57,6 +57,9 @@ AnimAssocDesc aStdAnimDescs[] = {
 	{ ANIM_HIT_BACK, ASSOC_FADEOUTWHENDONE | ASSOC_PARTIAL | ASSOC_HAS_TRANSLATION },
 	{ ANIM_HIT_RIGHT, ASSOC_FADEOUTWHENDONE | ASSOC_PARTIAL },
 	{ ANIM_FLOOR_HIT, ASSOC_DELETEFADEDOUT | ASSOC_PARTIAL },
+#if GTA_VERSION <= GTA3_PS2_160
+	{ ANIM_HIT_BODY, ASSOC_FADEOUTWHENDONE | ASSOC_PARTIAL },
+#endif
 	{ ANIM_HIT_BODYBLOW, ASSOC_FADEOUTWHENDONE | ASSOC_PARTIAL | ASSOC_HAS_TRANSLATION },
 	{ ANIM_HIT_CHEST, ASSOC_FADEOUTWHENDONE | ASSOC_PARTIAL | ASSOC_HAS_TRANSLATION },
 	{ ANIM_HIT_HEAD, ASSOC_FADEOUTWHENDONE | ASSOC_PARTIAL | ASSOC_HAS_TRANSLATION },
@@ -78,6 +81,8 @@ AnimAssocDesc aStdAnimDescs[] = {
 	{ ANIM_BOMBER, ASSOC_FADEOUTWHENDONE | ASSOC_PARTIAL | ASSOC_NOWALK  },
 	{ ANIM_HGUN_RELOAD, ASSOC_FADEOUTWHENDONE | ASSOC_PARTIAL | ASSOC_NOWALK  },
 	{ ANIM_AK_RELOAD, ASSOC_FADEOUTWHENDONE | ASSOC_PARTIAL | ASSOC_NOWALK  },
+#ifdef PC_PLAYER_CONTROLS
+	// maybe wrong define, but unused anyway
 	{ ANIM_FPS_PUNCH, ASSOC_FADEOUTWHENDONE | ASSOC_PARTIAL },
 	{ ANIM_FPS_BAT, ASSOC_FADEOUTWHENDONE | ASSOC_PARTIAL },
 	{ ANIM_FPS_UZI, ASSOC_FADEOUTWHENDONE | ASSOC_PARTIAL },
@@ -85,6 +90,7 @@ AnimAssocDesc aStdAnimDescs[] = {
 	{ ANIM_FPS_AK, ASSOC_FADEOUTWHENDONE | ASSOC_PARTIAL },
 	{ ANIM_FPS_M16, ASSOC_FADEOUTWHENDONE | ASSOC_PARTIAL },
 	{ ANIM_FPS_ROCKET, ASSOC_FADEOUTWHENDONE | ASSOC_PARTIAL },
+#endif
 	{ ANIM_FIGHT_IDLE, ASSOC_REPEAT },
 	{ ANIM_FIGHT2_IDLE, ASSOC_FADEOUTWHENDONE | ASSOC_PARTIAL },
 	{ ANIM_FIGHT_SH_F, ASSOC_FADEOUTWHENDONE | ASSOC_PARTIAL | ASSOC_HAS_TRANSLATION },
@@ -193,6 +199,7 @@ AnimAssocDesc aStdAnimDescs[] = {
 	{ ANIM_PHONE_OUT, ASSOC_FADEOUTWHENDONE | ASSOC_PARTIAL },
 	{ ANIM_PHONE_TALK, ASSOC_REPEAT | ASSOC_DELETEFADEDOUT | ASSOC_PARTIAL },
 };
+#ifdef PC_PLAYER_CONTROLS
 AnimAssocDesc aStdAnimDescsSide[] = {
 	{ ANIM_WALK, ASSOC_REPEAT | ASSOC_MOVEMENT | ASSOC_HAS_TRANSLATION | ASSOC_WALK | ASSOC_HAS_X_TRANSLATION },
 	{ ANIM_RUN, ASSOC_REPEAT | ASSOC_MOVEMENT | ASSOC_HAS_TRANSLATION | ASSOC_WALK | ASSOC_HAS_X_TRANSLATION },
@@ -200,6 +207,7 @@ AnimAssocDesc aStdAnimDescsSide[] = {
 	{ ANIM_IDLE_STANCE, ASSOC_REPEAT },
 	{ ANIM_WALK_START, ASSOC_HAS_TRANSLATION | ASSOC_HAS_X_TRANSLATION },
 };
+#endif
 char const *aStdAnimations[] = {
 	"walk_civi",
 	"run_civi",
@@ -239,6 +247,9 @@ char const *aStdAnimations[] = {
 	"HIT_back",
 	"HIT_R",
 	"FLOOR_hit",
+#if GTA_VERSION <= GTA3_PS2_160
+	"HIT_body",
+#endif
 	"HIT_bodyblow",
 	"HIT_chest",
 	"HIT_head",
@@ -260,6 +271,8 @@ char const *aStdAnimations[] = {
 	"bomber",
 	"WEAPON_hgun_rload",
 	"WEAPON_AK_rload",
+#ifdef PC_PLAYER_CONTROLS
+	// maybe wrong define, but unused anyway
 	"FPS_PUNCH",
 	"FPS_BAT",
 	"FPS_UZI",
@@ -267,6 +280,7 @@ char const *aStdAnimations[] = {
 	"FPS_AK",
 	"FPS_M16",
 	"FPS_ROCKET",
+#endif
 	"FIGHTIDLE",
 	"FIGHT2IDLE",
 	"FIGHTsh_F",
@@ -488,6 +502,7 @@ char const *aPanicChunkyAnimations[] = {
 	"woman_runpanic",
 	"idle_stance",
 };
+#ifdef PC_PLAYER_CONTROLS
 char const *aPlayerStrafeBackAnimations[] = {
 	"walk_player_back",
 	"run_player_back",
@@ -530,6 +545,7 @@ char const *aRocketStrafeRightAnimations[] = {
 	"idle_rocket",
 	"walkst_rocket_right",
 };
+#endif
 
 #define awc(a) ARRAY_SIZE(a), a
 const AnimAssocDefinition CAnimManager::ms_aAnimAssocDefinitions[NUM_ANIM_ASSOC_GROUPS] = {
@@ -552,12 +568,14 @@ const AnimAssocDefinition CAnimManager::ms_aAnimAssocDefinitions[NUM_ANIM_ASSOC_
 	{ "oldwoman", "ped", MI_COP, awc(aOldWomanAnimations), aStdAnimDescs },
 	{ "fatwoman", "ped", MI_COP, awc(aFatWomanAnimations), aStdAnimDescs },
 	{ "panicchunky", "ped", MI_COP, awc(aPanicChunkyAnimations), aStdAnimDescs },
+#ifdef PC_PLAYER_CONTROLS
 	{ "playerback", "ped", MI_COP, awc(aPlayerStrafeBackAnimations), aStdAnimDescs },
 	{ "playerleft", "ped", MI_COP, awc(aPlayerStrafeLeftAnimations), aStdAnimDescsSide },
 	{ "playerright", "ped", MI_COP, awc(aPlayerStrafeRightAnimations), aStdAnimDescsSide },
 	{ "rocketback", "ped", MI_COP, awc(aRocketStrafeBackAnimations), aStdAnimDescs },
 	{ "rocketleft", "ped", MI_COP, awc(aRocketStrafeLeftAnimations), aStdAnimDescsSide },
 	{ "rocketright", "ped", MI_COP, awc(aRocketStrafeRightAnimations), aStdAnimDescsSide },
+#endif
 };
 #undef awc
 
@@ -792,11 +810,11 @@ CAnimManager::LoadAnimFile(int fd, bool compress)
 	float *fbuf = (float*)buf;
 
 	CFileMgr::Read(fd, (char*)&anpk, sizeof(IfpHeader));
-	if(strncmp(anpk.ident, "ANLF", 4) == 0){
+	if(!CGeneral::faststrncmp(anpk.ident, "ANLF", 4)) {
 		ROUNDSIZE(anpk.size);
 		CFileMgr::Read(fd, buf, anpk.size);
 		numANPK = *(int*)buf;
-	}else if(strncmp(anpk.ident, "ANPK", 4) == 0){
+	} else if(!CGeneral::faststrncmp(anpk.ident, "ANPK", 4)) {
 		CFileMgr::Seek(fd, -8, 1);
 		numANPK = 1;
 	}
@@ -841,54 +859,57 @@ CAnimManager::LoadAnimFile(int fd, bool compress)
 				ROUNDSIZE(anim.size);
 				CFileMgr::Read(fd, buf, anim.size);
 				int numFrames = *(int*)(buf+28);
+				seq->SetName(buf);
 #ifdef PED_SKIN
 				if(anim.size == 44)
 					seq->SetBoneTag(*(int*)(buf+40));
 #endif
-				seq->SetName(buf);
 				if(numFrames == 0)
 					continue;
 
+				bool hasScale = false;
+				bool hasTranslation = false;
 				CFileMgr::Read(fd, (char*)&info, sizeof(info));
-				if(strncmp(info.ident, "KR00", 4) == 0){
+				if(!CGeneral::faststrncmp(info.ident, "KRTS", 4)) {
+					hasScale = true;
+					seq->SetNumFrames(numFrames, true);
+				}else if(!CGeneral::faststrncmp(info.ident, "KRT0", 4)) {
+					hasTranslation = true;
+					seq->SetNumFrames(numFrames, true);
+				}else if(!CGeneral::faststrncmp(info.ident, "KR00", 4)){
 					seq->SetNumFrames(numFrames, false);
-					KeyFrame *kf = seq->GetKeyFrame(0);
-					for(l = 0; l < numFrames; l++, kf++){
-						CFileMgr::Read(fd, buf, 0x14);
-						kf->rotation.x = -fbuf[0];
-						kf->rotation.y = -fbuf[1];
-						kf->rotation.z = -fbuf[2];
-						kf->rotation.w = fbuf[3];
-						kf->deltaTime = fbuf[4];	// absolute time here
-					}
-				}else if(strncmp(info.ident, "KRT0", 4) == 0){
-					seq->SetNumFrames(numFrames, true);
-					KeyFrameTrans *kf = (KeyFrameTrans*)seq->GetKeyFrame(0);
-					for(l = 0; l < numFrames; l++, kf++){
-						CFileMgr::Read(fd, buf, 0x20);
-						kf->rotation.x = -fbuf[0];
-						kf->rotation.y = -fbuf[1];
-						kf->rotation.z = -fbuf[2];
-						kf->rotation.w = fbuf[3];
-						kf->translation.x = fbuf[4];
-						kf->translation.y = fbuf[5];
-						kf->translation.z = fbuf[6];
-						kf->deltaTime = fbuf[7];	// absolute time here
-					}
-				}else if(strncmp(info.ident, "KRTS", 4) == 0){
-					seq->SetNumFrames(numFrames, true);
-					KeyFrameTrans *kf = (KeyFrameTrans*)seq->GetKeyFrame(0);
-					for(l = 0; l < numFrames; l++, kf++){
+				}
+
+				for(l = 0; l < numFrames; l++){
+					if(hasScale){
 						CFileMgr::Read(fd, buf, 0x2C);
-						kf->rotation.x = -fbuf[0];
-						kf->rotation.y = -fbuf[1];
-						kf->rotation.z = -fbuf[2];
-						kf->rotation.w = fbuf[3];
-						kf->translation.x = fbuf[4];
-						kf->translation.y = fbuf[5];
-						kf->translation.z = fbuf[6];
+						CQuaternion rot(fbuf[0], fbuf[1], fbuf[2], fbuf[3]);
+						rot.Invert();
+						CVector trans(fbuf[4], fbuf[5], fbuf[6]);
+
+						KeyFrameTrans *kf = (KeyFrameTrans*)seq->GetKeyFrame(l);
+						kf->rotation = rot;
+						kf->translation = trans;
 						// scaling ignored
 						kf->deltaTime = fbuf[10];	// absolute time here
+					}else if(hasTranslation){
+						CFileMgr::Read(fd, buf, 0x20);
+						CQuaternion rot(fbuf[0], fbuf[1], fbuf[2], fbuf[3]);
+						rot.Invert();
+						CVector trans(fbuf[4], fbuf[5], fbuf[6]);
+
+						KeyFrameTrans *kf = (KeyFrameTrans*)seq->GetKeyFrame(l);
+						kf->rotation = rot;
+						kf->translation = trans;
+						kf->deltaTime = fbuf[7];	// absolute time here
+					}else{
+						CFileMgr::Read(fd, buf, 0x14);
+						CQuaternion rot(fbuf[0], fbuf[1], fbuf[2], fbuf[3]);
+						rot.Invert();
+
+						KeyFrame *kf = (KeyFrame*)seq->GetKeyFrame(l);
+						kf->rotation = rot;
+						kf->deltaTime = fbuf[4];	// absolute time here
 					}
 				}
 

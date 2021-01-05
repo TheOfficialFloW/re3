@@ -44,7 +44,7 @@ CustomMatCopy(void *dst, void *src, int32, int32)
 
 
 
-static rw::TexDictionary *neoTxd;
+rw::TexDictionary *neoTxd;
 
 bool bRenderingEnvMap;
 int32 EnvMapSize = 128;
@@ -133,7 +133,11 @@ EnvMapRender(void)
 	EnvMapCam->getFrame()->matrix.pos = camPos;
 	EnvMapCam->getFrame()->transform(&EnvMapCam->getFrame()->matrix, rw::COMBINEREPLACE);
 
-	rw::RGBA skycol = { CTimeCycle::GetSkyBottomRed(), CTimeCycle::GetSkyBottomGreen(), CTimeCycle::GetSkyBottomBlue(), 255 };
+	rw::RGBA skycol;
+	skycol.red = CTimeCycle::GetSkyBottomRed();
+	skycol.green = CTimeCycle::GetSkyBottomGreen();
+	skycol.blue = CTimeCycle::GetSkyBottomBlue();
+	skycol.alpha = 255;
 	EnvMapCam->clear(&skycol, rwCAMERACLEARZ|rwCAMERACLEARIMAGE);
 	RwCameraBeginUpdate(EnvMapCam);
 	bRenderingEnvMap = true;

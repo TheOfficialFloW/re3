@@ -2,6 +2,7 @@
 
 #include "RwHelper.h"
 #include "templates.h"
+#include "main.h"
 #include "Entity.h"
 #include "ModelInfo.h"
 #include "Lights.h"
@@ -10,11 +11,13 @@
 #include "VisibilityPlugins.h"
 #include "World.h"
 #include "custompipes.h"
-
-#define FADE_DISTANCE 20.0f
+#include "MemoryHeap.h"
 
 CLinkList<CVisibilityPlugins::AlphaObjectInfo> CVisibilityPlugins::m_alphaList;
 CLinkList<CVisibilityPlugins::AlphaObjectInfo> CVisibilityPlugins::m_alphaEntityList;
+#ifdef NEW_RENDERER
+CLinkList<CVisibilityPlugins::AlphaObjectInfo> CVisibilityPlugins::m_alphaBuildingList;
+#endif
 
 int32 CVisibilityPlugins::ms_atomicPluginOffset = -1;
 int32 CVisibilityPlugins::ms_framePluginOffset = -1;
@@ -32,6 +35,119 @@ float CVisibilityPlugins::ms_pedLod0Dist;
 float CVisibilityPlugins::ms_pedLod1Dist;
 float CVisibilityPlugins::ms_pedFadeDist;
 
+#ifdef GTA_PS2	// maybe something else?
+// if wanted, delete the original geometry data after rendering
+// and only keep the instanced data
+bool
+rpDefaultGeometryInstance(RpGeometry *geo, void *atomic, int del)
+{
+#if THIS_IS_COMPATIBLE_WITH_GTA3_RW31
+	if(RpGeometryGetNumMorphTargets(geo) != 1)
+		return false;
+
+	// this needs R*'s modification that geometry data is
+	// allocated separately from the geometry itself
+	geo->instanceFlags = rpGEOMETRYINSTANCE;
+	AtomicDefaultRenderCallBack((RpAtomic*)atomic);
+
+	if(!del)
+		return true;
+
+	// New mesh without indices
+	RpMeshHeader *newheader = _rpMeshHeaderCreate(sizeof(RpMesh)*geo->mesh->numMeshes + sizeof(RpMeshHeader));
+	newheader->numMeshes = geo->mesh->numMeshes;
+	newheader->serialNum = 1;
+	newheader->totalIndicesInMesh = 0;
+	newheader->firstMeshOffset = 0;
+	RpMesh *oldmesh = (RpMesh*)(geo->mesh+1);
+	RpMesh *newmesh = (RpMesh*)(newheader+1);
+	for(int i = 0; i < geo->mesh->numMeshes; i++){
+		newmesh[i].indices = nil;
+		newmesh[i].numIndices = 0;
+		newmesh[i].material = oldmesh[i].material;
+	}
+
+	geo->refCount++;
+	RpGeometryLock(geo, rpGEOMETRYLOCKPOLYGONS | rpGEOMETRYLOCKVERTICES |
+		rpGEOMETRYLOCKNORMALS | rpGEOMETRYLOCKPRELIGHT |
+		rpGEOMETRYLOCKTEXCOORDS1 | rpGEOMETRYLOCKTEXCOORDS2);
+
+	// vertices and normals
+	RpMorphTarget *mt = RpGeometryGetMorphTarget(geo, 0);
+	if(mt->verts){
+		RwFree(mt->verts);
+		mt->verts = nil;
+		mt->normals = nil;
+	}
+	geo->numVertices = 0;
+
+	// triangles
+	for(int i = 0; i < RpGeometryGetNumTriangles(geo); i++){
+		if(RpGeometryGetTriangles(geo)->matIndex == -1)
+			continue;
+		RpMaterialDestroy(_rpMaterialListGetMaterial(&geo->matList, RpGeometryGetTriangles(geo)->matIndex));
+	}
+	if(RpGeometryGetTriangles(geo)){
+		RwFree(RpGeometryGetTriangles(geo));
+		geo->triangles = nil;
+		geo->numTriangles = 0;
+	}
+
+	// tex coords
+	if(RpGeometryGetVertexTexCoords(geo, 1)){
+		RwFree(RpGeometryGetVertexTexCoords(geo, 1));
+		geo->texCoords[1] = nil;
+	}
+	if(RpGeometryGetVertexTexCoords(geo, 0)){
+		RwFree(RpGeometryGetVertexTexCoords(geo, 0));
+		geo->texCoords[0] = nil;
+	}
+
+	// vertex colors
+	if(RpGeometryGetPreLightColors(geo)){
+		RwFree(RpGeometryGetPreLightColors(geo));
+		geo->preLitLum = nil;
+	}
+
+	RpGeometryUnlock(geo);
+
+	geo->instanceFlags = rpGEOMETRYPERSISTENT;
+	// BUG? don't we have to free the old mesh?
+	geo->mesh = newheader;
+	geo->refCount--;
+#else
+	// We can do something for librw here actually, maybe later
+	AtomicDefaultRenderCallBack((RpAtomic*)atomic);
+#endif
+
+	return true;
+}
+
+RpAtomic*
+PreInstanceRenderCB(RpAtomic *atomic)
+{
+	RpGeometry *geo = RpAtomicGetGeometry(atomic);
+	if(RpGeometryGetTriangles(geo)){
+		PUSH_MEMID(MEMID_STREAM_MODELS);
+		rpDefaultGeometryInstance(geo, atomic, 1);
+		POP_MEMID();
+	}else
+		AtomicDefaultRenderCallBack(atomic);
+	return atomic;
+}
+#define RENDERCALLBACK PreInstanceRenderCB
+#else
+RpAtomic*
+DefaultRenderCB_pushid(RpAtomic *atomic)
+{
+	PUSH_MEMID(MEMID_STREAM_MODELS);
+	AtomicDefaultRenderCallBack(atomic);
+	POP_MEMID();
+	return atomic;
+}
+#define RENDERCALLBACK DefaultRenderCB_pushid
+#endif
+
 void
 CVisibilityPlugins::Initialise(void)
 {
@@ -46,6 +162,12 @@ CVisibilityPlugins::Initialise(void)
 #endif // ASPECT_RATIO_SCALE
 	m_alphaEntityList.head.item.sort = 0.0f;
 	m_alphaEntityList.tail.item.sort = 100000000.0f;
+
+#ifdef NEW_RENDERER
+	m_alphaBuildingList.Init(NUMALPHAENTITYLIST);
+	m_alphaBuildingList.head.item.sort = 0.0f;
+	m_alphaBuildingList.tail.item.sort = 100000000.0f;
+#endif
 }
 
 void
@@ -53,12 +175,18 @@ CVisibilityPlugins::Shutdown(void)
 {
 	m_alphaList.Shutdown();
 	m_alphaEntityList.Shutdown();
+#ifdef NEW_RENDERER
+	m_alphaBuildingList.Shutdown();
+#endif
 }
 
 void
 CVisibilityPlugins::InitAlphaEntityList(void)
 {
 	m_alphaEntityList.Clear();
+#ifdef NEW_RENDERER
+	m_alphaBuildingList.Clear();
+#endif
 }
 
 bool
@@ -67,6 +195,10 @@ CVisibilityPlugins::InsertEntityIntoSortedList(CEntity *e, float dist)
 	AlphaObjectInfo item;
 	item.entity = e;
 	item.sort = dist;
+#ifdef NEW_RENDERER
+	if(gbNewRenderer && e->IsBuilding())
+		return !!m_alphaBuildingList.InsertSorted(item);
+#endif
 	bool ret = !!m_alphaEntityList.InsertSorted(item);
 //	if(!ret)
 //		printf("list full %d\n", m_alphaEntityList.Count());
@@ -91,6 +223,10 @@ CVisibilityPlugins::InsertAtomicIntoSortedList(RpAtomic *a, float dist)
 	return ret;
 }
 
+// can't increase this yet unfortunately...
+// probably have to fix fading for this so material alpha isn't overwritten
+#define VEHICLE_LODDIST_MULTIPLIER (TheCamera.GenerationDistMultiplier)
+
 void
 CVisibilityPlugins::SetRenderWareCamera(RwCamera *camera)
 {
@@ -103,11 +239,11 @@ CVisibilityPlugins::SetRenderWareCamera(RwCamera *camera)
 	else
 		ms_cullCompsDist = sq(TheCamera.LODDistMultiplier * 20.0f);
 
-        ms_vehicleLod0Dist = sq(70.0f * TheCamera.GenerationDistMultiplier);
-        ms_vehicleLod1Dist = sq(90.0f * TheCamera.GenerationDistMultiplier);
-        ms_vehicleFadeDist = sq(100.0f * TheCamera.GenerationDistMultiplier);
-        ms_bigVehicleLod0Dist = sq(60.0f * TheCamera.GenerationDistMultiplier);
-        ms_bigVehicleLod1Dist = sq(150.0f * TheCamera.GenerationDistMultiplier);
+        ms_vehicleLod0Dist = sq(70.0f * VEHICLE_LODDIST_MULTIPLIER);
+        ms_vehicleLod1Dist = sq(90.0f * VEHICLE_LODDIST_MULTIPLIER);
+        ms_vehicleFadeDist = sq(100.0f * VEHICLE_LODDIST_MULTIPLIER);
+        ms_bigVehicleLod0Dist = sq(60.0f * VEHICLE_LODDIST_MULTIPLIER);
+        ms_bigVehicleLod1Dist = sq(150.0f * VEHICLE_LODDIST_MULTIPLIER);
         ms_pedLod0Dist = sq(25.0f * TheCamera.LODDistMultiplier);
         ms_pedLod1Dist = sq(60.0f * TheCamera.LODDistMultiplier);
         ms_pedFadeDist = sq(70.0f * TheCamera.LODDistMultiplier);
@@ -134,7 +270,7 @@ CVisibilityPlugins::RenderAlphaAtomics(void)
 	for(node = m_alphaList.tail.prev;
 	    node != &m_alphaList.head;
 	    node = node->prev)
-		AtomicDefaultRenderCallBack(node->item.atomic);
+		RENDERCALLBACK(node->item.atomic);
 }
 
 void
@@ -199,11 +335,16 @@ CVisibilityPlugins::RenderWheelAtomicCB(RpAtomic *atomic)
 	m = RwFrameGetLTM(RpAtomicGetFrame(atomic));
 	RwV3dSub(&view, RwMatrixGetPos(m), ms_pCameraPosn);
 	len = RwV3dLength(&view);
+#ifdef FIX_BUGS
+	// from VC
+	lodatm = mi->GetAtomicFromDistance(len * TheCamera.LODDistMultiplier / VEHICLE_LODDIST_MULTIPLIER);
+#else
 	lodatm = mi->GetAtomicFromDistance(len);
+#endif
 	if(lodatm){
 		if(RpAtomicGetGeometry(lodatm) != RpAtomicGetGeometry(atomic))
 			RpAtomicSetGeometry(atomic, RpAtomicGetGeometry(lodatm), rpATOMICSAMEBOUNDINGSPHERE);
-		AtomicDefaultRenderCallBack(atomic);
+		RENDERCALLBACK(atomic);
 	}
 	return atomic;
 }
@@ -220,7 +361,7 @@ CVisibilityPlugins::RenderObjNormalAtomic(RpAtomic *atomic)
 	len = RwV3dLength(&view);
 	if(RwV3dDotProduct(&view, RwMatrixGetUp(m)) < -0.3f*len && len > 8.0f)
 		return atomic;
-	AtomicDefaultRenderCallBack(atomic);
+	RENDERCALLBACK(atomic);
 	return atomic;
 }
 
@@ -234,7 +375,7 @@ CVisibilityPlugins::RenderAlphaAtomic(RpAtomic *atomic, int alpha)
 	flags = RpGeometryGetFlags(geo);
 	RpGeometrySetFlags(geo, flags | rpGEOMETRYMODULATEMATERIALCOLOR);
 	RpGeometryForAllMaterials(geo, SetAlphaCB, (void*)alpha);
-	AtomicDefaultRenderCallBack(atomic);
+	RENDERCALLBACK(atomic);
 	RpGeometryForAllMaterials(geo, SetAlphaCB, (void*)255);
 	RpGeometrySetFlags(geo, flags);
 	return atomic;
@@ -252,7 +393,7 @@ CVisibilityPlugins::RenderFadingAtomic(RpAtomic *atomic, float camdist)
 	lodatm = mi->GetAtomicFromDistance(camdist - FADE_DISTANCE);
 	if(mi->m_additive){
 		RwRenderStateSet(rwRENDERSTATEDESTBLEND, (void*)rwBLENDONE);
-		AtomicDefaultRenderCallBack(atomic);
+		RENDERCALLBACK(atomic);
 		RwRenderStateSet(rwRENDERSTATEDESTBLEND, (void*)rwBLENDINVSRCALPHA);
 	}else{
 		fadefactor = (mi->GetLargestLodDistance() - (camdist - FADE_DISTANCE))/FADE_DISTANCE;
@@ -260,7 +401,7 @@ CVisibilityPlugins::RenderFadingAtomic(RpAtomic *atomic, float camdist)
 			fadefactor = 1.0f;
 		alpha = mi->m_alpha * fadefactor;
 		if(alpha == 255)
-			AtomicDefaultRenderCallBack(atomic);
+			RENDERCALLBACK(atomic);
 		else{
 			RpGeometry *geo = RpAtomicGetGeometry(lodatm);
 			uint32 flags = RpGeometryGetFlags(geo);
@@ -268,7 +409,7 @@ CVisibilityPlugins::RenderFadingAtomic(RpAtomic *atomic, float camdist)
 			RpGeometryForAllMaterials(geo, SetAlphaCB, (void*)alpha);
 			if(geo != RpAtomicGetGeometry(atomic))
 				RpAtomicSetGeometry(atomic, geo, rpATOMICSAMEBOUNDINGSPHERE); // originally 5 (mistake?)
-			AtomicDefaultRenderCallBack(atomic);
+			RENDERCALLBACK(atomic);
 			RpGeometryForAllMaterials(geo, SetAlphaCB, (void*)255);
 			RpGeometrySetFlags(geo, flags);
 		}
@@ -295,7 +436,7 @@ CVisibilityPlugins::RenderVehicleHiDetailCB(RpAtomic *atomic)
 			if(dot > 0.0f && ((flags & ATOMIC_FLAG_ANGLECULL) || 0.1f*distsq < dot*dot))
 				return atomic;
 		}
-		AtomicDefaultRenderCallBack(atomic);
+		RENDERCALLBACK(atomic);
 	}
 	return atomic;
 }
@@ -320,10 +461,10 @@ CVisibilityPlugins::RenderVehicleHiDetailAlphaCB(RpAtomic *atomic)
 		if(flags & ATOMIC_FLAG_DRAWLAST){
 			// sort before clump
 			if(!InsertAtomicIntoSortedList(atomic, distsq - 0.0001f))
-				AtomicDefaultRenderCallBack(atomic);
+				RENDERCALLBACK(atomic);
 		}else{
 			if(!InsertAtomicIntoSortedList(atomic, distsq + dot))
-				AtomicDefaultRenderCallBack(atomic);
+				RENDERCALLBACK(atomic);
 		}
 	}
 	return atomic;
@@ -346,7 +487,7 @@ CVisibilityPlugins::RenderVehicleHiDetailCB_BigVehicle(RpAtomic *atomic)
 			if(dot > 0.0f)
 				return atomic;
 		}
-		AtomicDefaultRenderCallBack(atomic);
+		RENDERCALLBACK(atomic);
 	}
 	return atomic;
 }
@@ -369,7 +510,7 @@ CVisibilityPlugins::RenderVehicleHiDetailAlphaCB_BigVehicle(RpAtomic *atomic)
 				return atomic;
 
 		if(!InsertAtomicIntoSortedList(atomic, distsq + dot))
-			AtomicDefaultRenderCallBack(atomic);
+			RENDERCALLBACK(atomic);
 	}
 	return atomic;
 }
@@ -383,7 +524,7 @@ CVisibilityPlugins::RenderVehicleHiDetailCB_Boat(RpAtomic *atomic)
 	clumpframe = RpClumpGetFrame(RpAtomicGetClump(atomic));
 	distsq = GetDistanceSquaredFromCamera(clumpframe);
 	if(distsq < ms_bigVehicleLod1Dist)
-		AtomicDefaultRenderCallBack(atomic);
+		RENDERCALLBACK(atomic);
 	return atomic;
 }
 
@@ -405,7 +546,7 @@ CVisibilityPlugins::RenderVehicleLowDetailCB_BigVehicle(RpAtomic *atomic)
 			if(dot > 0.0f)
 				return atomic;
 		}
-		AtomicDefaultRenderCallBack(atomic);
+		RENDERCALLBACK(atomic);
 	}
 	return atomic;
 }
@@ -429,7 +570,7 @@ CVisibilityPlugins::RenderVehicleLowDetailAlphaCB_BigVehicle(RpAtomic *atomic)
 				return atomic;
 
 		if(!InsertAtomicIntoSortedList(atomic, distsq + dot))
-			AtomicDefaultRenderCallBack(atomic);
+			RENDERCALLBACK(atomic);
 	}
 	return atomic;
 }
@@ -446,7 +587,7 @@ CVisibilityPlugins::RenderVehicleReallyLowDetailCB(RpAtomic *atomic)
 	if(dist >= ms_vehicleLod0Dist){
 		alpha = GetClumpAlpha(clump);
 		if(alpha == 255)
-			AtomicDefaultRenderCallBack(atomic);
+			RENDERCALLBACK(atomic);
 		else
 			RenderAlphaAtomic(atomic, alpha);
 	}
@@ -463,7 +604,7 @@ CVisibilityPlugins::RenderVehicleReallyLowDetailCB_BigVehicle(RpAtomic *atomic)
 	clumpframe = RpClumpGetFrame(RpAtomicGetClump(atomic));
 	distsq = GetDistanceSquaredFromCamera(clumpframe);
 	if(distsq >= ms_bigVehicleLod1Dist)
-		AtomicDefaultRenderCallBack(atomic);
+		RENDERCALLBACK(atomic);
 	return atomic;
 }
 
@@ -484,7 +625,7 @@ CVisibilityPlugins::RenderTrainHiDetailCB(RpAtomic *atomic)
 			if(dot > 0.0f && ((flags & ATOMIC_FLAG_ANGLECULL) || 0.1f*distsq < dot*dot))
 				return atomic;
 		}
-		AtomicDefaultRenderCallBack(atomic);
+		RENDERCALLBACK(atomic);
 	}
 	return atomic;
 }
@@ -509,10 +650,10 @@ CVisibilityPlugins::RenderTrainHiDetailAlphaCB(RpAtomic *atomic)
 		if(flags & ATOMIC_FLAG_DRAWLAST){
 			// sort before clump
 			if(!InsertAtomicIntoSortedList(atomic, distsq - 0.0001f))
-				AtomicDefaultRenderCallBack(atomic);
+				RENDERCALLBACK(atomic);
 		}else{
 			if(!InsertAtomicIntoSortedList(atomic, distsq + dot))
-				AtomicDefaultRenderCallBack(atomic);
+				RENDERCALLBACK(atomic);
 		}
 	}
 	return atomic;
@@ -523,7 +664,7 @@ CVisibilityPlugins::RenderPlayerCB(RpAtomic *atomic)
 {
 	if(CWorld::Players[0].m_pSkinTexture)
 		RpGeometryForAllMaterials(RpAtomicGetGeometry(atomic), SetTextureCB, CWorld::Players[0].m_pSkinTexture);
-	AtomicDefaultRenderCallBack(atomic);
+	RENDERCALLBACK(atomic);
 	return atomic;
 }
 
@@ -539,7 +680,7 @@ CVisibilityPlugins::RenderPedLowDetailCB(RpAtomic *atomic)
 	if(dist >= ms_pedLod0Dist){
 		alpha = GetClumpAlpha(clump);
 		if(alpha == 255)
-			AtomicDefaultRenderCallBack(atomic);
+			RENDERCALLBACK(atomic);
 		else
 			RenderAlphaAtomic(atomic, alpha);
 	}
@@ -558,7 +699,7 @@ CVisibilityPlugins::RenderPedHiDetailCB(RpAtomic *atomic)
 	if(dist < ms_pedLod0Dist){
 		alpha = GetClumpAlpha(clump);
 		if(alpha == 255)
-			AtomicDefaultRenderCallBack(atomic);
+			RENDERCALLBACK(atomic);
 		else
 			RenderAlphaAtomic(atomic, alpha);
 	}
@@ -577,7 +718,7 @@ CVisibilityPlugins::RenderPedCB(RpAtomic *atomic)
 	if(RwV3dDotProduct(&cam2atm, &cam2atm) < ms_pedLod1Dist){
 		alpha = GetClumpAlpha(RpAtomicGetClump(atomic));
 		if(alpha == 255)
-			AtomicDefaultRenderCallBack(atomic);
+			RENDERCALLBACK(atomic);
 		else
 			RenderAlphaAtomic(atomic, alpha);
 	}
@@ -707,6 +848,11 @@ CVisibilityPlugins::PluginAttach(void)
 	ms_clumpPluginOffset = RpClumpRegisterPlugin(sizeof(ClumpExt),
 		ID_VISIBILITYCLUMP,
 		ClumpConstructor, ClumpDestructor, ClumpCopyConstructor);
+
+#if GTA_VERSION <= GTA3_PS2_160
+	Initialise();
+#endif
+
 	return ms_atomicPluginOffset != -1 && ms_clumpPluginOffset != -1;
 }
 
@@ -777,12 +923,11 @@ CVisibilityPlugins::GetAtomicId(RpAtomic *atomic)
 	return ATOMICEXT(atomic)->flags;
 }
 
-// This is rather useless, but whatever
 void
 CVisibilityPlugins::SetAtomicRenderCallback(RpAtomic *atomic, RpAtomicCallBackRender cb)
 {
 	if(cb == nil)
-		cb = AtomicDefaultRenderCallBack;	// not necessary
+		cb = RENDERCALLBACK;
 	RpAtomicSetRenderCallBack(atomic, cb);
 }
 
@@ -811,12 +956,12 @@ CVisibilityPlugins::FrameCopyConstructor(void *dst, const void *src, int32, int3
 }
 
 void
-CVisibilityPlugins::SetFrameHierarchyId(RwFrame *frame, uintptr id)
+CVisibilityPlugins::SetFrameHierarchyId(RwFrame *frame, intptr id)
 {
 	FRAMEEXT(frame)->id = id;
 }
 
-uintptr
+intptr
 CVisibilityPlugins::GetFrameHierarchyId(RwFrame *frame)
 {
 	return FRAMEEXT(frame)->id;
@@ -853,7 +998,7 @@ void
 CVisibilityPlugins::SetClumpModelInfo(RpClump *clump, CClumpModelInfo *modelInfo)
 {
 	CVehicleModelInfo *vmi;
-	SetFrameHierarchyId(RpClumpGetFrame(clump), (uintptr)modelInfo);
+	SetFrameHierarchyId(RpClumpGetFrame(clump), (intptr)modelInfo);
 
 	// Unused
 	switch (modelInfo->GetModelType()) {

@@ -107,11 +107,7 @@ enum
 
 #define MAX_STREAMS                2
 
-#if !defined(PSP2)
 #define DIGITALRATE                32000
-#else
-#define DIGITALRATE                48000
-#endif
 #define DIGITALBITS                16
 #define DIGITALCHANNELS            2
 

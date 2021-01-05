@@ -274,7 +274,7 @@ CCivilianPed::ProcessControl(void)
 					} else {
 						crimeReporters[m_phoneId] = this;
 						m_facePhoneStart = true;
-						m_nPedState = PED_FACE_PHONE;
+						SetPedState(PED_FACE_PHONE);
 					}
 #else
 				} else if (bRunningToPhone) {
@@ -283,7 +283,7 @@ CCivilianPed::ProcessControl(void)
 						m_phoneId = -1;
 					} else {
 						gPhoneInfo.m_aPhones[m_phoneId].m_nState = PHONE_STATE_REPORTING_CRIME;
-						m_nPedState = PED_FACE_PHONE;
+						SetPedState(PED_FACE_PHONE);
 					}
 #endif
 				} else if (m_objective != OBJECTIVE_KILL_CHAR_ANY_MEANS && m_objective != OBJECTIVE_KILL_CHAR_ON_FOOT) {
@@ -305,7 +305,7 @@ CCivilianPed::ProcessControl(void)
 			break;
 		case PED_FACE_PHONE:
 			if (FacePhone())
-				m_nPedState = PED_MAKE_CALL;
+				SetPedState(PED_MAKE_CALL);
 			break;
 		case PED_MAKE_CALL:
 			if (MakePhonecall())
@@ -331,7 +331,7 @@ CCivilianPed::ProcessControl(void)
 				for (int j = 0; j < m_numNearPeds; ++j) {
 					CPed *nearPed = m_nearPeds[j];
 					if (nearPed->m_nPedType == m_nPedType && nearPed->m_nPedState == PED_WANDER_PATH) {
-						nearPed->m_nPedState = PED_UNKNOWN;
+						nearPed->SetPedState(PED_UNKNOWN);
 					}
 				}
 			}
@@ -423,4 +423,46 @@ CCivilianPed::ProcessControl(void)
 
 	if (m_moved.Magnitude() > 0.0f)
 		Avoid();
+}
+
+// It's "CPhoneInfo::ProcessNearestFreePhone" in PC IDB but that's not true, someone made it up.
+bool
+CPed::RunToReportCrime(eCrimeType crimeToReport)
+{
+#ifdef PEDS_REPORT_CRIMES_ON_PHONE
+	if (bRunningToPhone) {
+		if (!isPhoneAvailable(m_phoneId)) {
+			m_phoneId = -1;
+			bIsRunning = false;
+			ClearSeek(); // clears bRunningToPhone
+			return false;
+		}
+
+		return true;
+	}
+#else
+	// They changed true into false to make this function unusable. So running to phone actually starts but first frame after that cancels it.
+	if (m_nPedState == PED_SEEK_POS)
+		return false;
+#endif
+
+	CVector pos = GetPosition();
+	int phoneId = gPhoneInfo.FindNearestFreePhone(&pos);
+
+	if (phoneId == -1)
+		return false;
+
+	CPhone *phone = &gPhoneInfo.m_aPhones[phoneId];
+#ifndef PEDS_REPORT_CRIMES_ON_PHONE
+	if (phone->m_nState != PHONE_STATE_FREE)
+		return false;
+#endif
+
+	bRunningToPhone = true;
+	SetSeek(phone->m_pEntity->GetMatrix() * -phone->m_pEntity->GetForward(), 1.0f); // original: phone.m_vecPos, 0.3f
+	SetMoveState(PEDMOVE_RUN);
+	bIsRunning = true; // not there in original
+	m_phoneId = phoneId;
+	m_crimeToReportOnPhone = crimeToReport;
+	return true;
 }

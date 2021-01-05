@@ -102,7 +102,7 @@ CChannel aChannel[MAXCHANNELS+MAX2DCHANNELS];
 uint8 nChannelVolume[MAXCHANNELS+MAX2DCHANNELS];
 
 uint32 nStreamLength[TOTAL_STREAMED_SOUNDS];
-ALuint ALStreamSources[MAX_STREAMS];
+ALuint ALStreamSources[MAX_STREAMS][2];
 ALuint ALStreamBuffers[MAX_STREAMS][NUM_STREAMBUFFERS];
 
 struct tMP3Entry
@@ -245,9 +245,9 @@ release_existing()
 		if (stream)
 			stream->ProviderTerm();
 		
-		alDeleteSources(1, &ALStreamSources[i]);
 		alDeleteBuffers(NUM_STREAMBUFFERS, ALStreamBuffers[i]);
 	}
+	alDeleteSources(MAX_STREAMS*2, ALStreamSources[0]);
 	
 	CChannel::DestroyChannels();
 	
@@ -287,7 +287,10 @@ set_new_provider(int index)
 		//TODO:
 		_maxSamples = MAXCHANNELS;
 		
-		ALCint attr[] = {ALC_FREQUENCY,MAX_FREQ,0};
+		ALCint attr[] = {ALC_FREQUENCY,MAX_FREQ,
+						ALC_MONO_SOURCES, MAX_STREAMS * 2 + MAXCHANNELS,
+						0,
+						};
 		
 		ALDevice  = alcOpenDevice(providers[index].id);
 		ASSERT(ALDevice != NULL);
@@ -321,11 +324,17 @@ set_new_provider(int index)
 			alGenEffects(1, &ALEffect);
 		}
 #endif
-		
+
+		alGenSources(MAX_STREAMS*2, ALStreamSources[0]);
 		for ( int32 i = 0; i < MAX_STREAMS; i++ )
 		{
-			alGenSources(1, &ALStreamSources[i]);
-			alGenBuffers(NUM_STREAMBUFFERS, ALStreamBuffers[i]);
+			alGenBuffers(NUM_STREAMBUFFERS, ALStreamBuffers[i]); 
+			alSourcei(ALStreamSources[i][0], AL_SOURCE_RELATIVE, AL_TRUE);
+			alSource3f(ALStreamSources[i][0], AL_POSITION, 0.0f, 0.0f, 0.0f);
+			alSourcef(ALStreamSources[i][0], AL_GAIN, 1.0f);
+			alSourcei(ALStreamSources[i][1], AL_SOURCE_RELATIVE, AL_TRUE);
+			alSource3f(ALStreamSources[i][1], AL_POSITION, 0.0f, 0.0f, 0.0f);
+			alSourcef(ALStreamSources[i][1], AL_GAIN, 1.0f);
 			
 			CStream *stream = aStream[i];
 			if (stream)
@@ -960,33 +969,37 @@ cSampleManager::Initialise(void)
 #ifdef AUDIO_CACHE
 	FILE *cacheFile = fcaseopen("audio\\sound.cache", "rb");
 	if (cacheFile) {
+		debug("Loadind audio cache (If game crashes around here, then your cache is corrupted, remove audio/sound.cache)\n");
 		fread(nStreamLength, sizeof(uint32), TOTAL_STREAMED_SOUNDS, cacheFile);
 		fclose(cacheFile);
 	} else
-#endif
 	{
-	
-		for ( int32 i = 0; i < TOTAL_STREAMED_SOUNDS; i++ )
-		{	
+		debug("Cannot load audio cache\n");
+#endif
+
+		for(int32 i = 0; i < TOTAL_STREAMED_SOUNDS; i++) {
 			aStream[0] = new CStream(StreamedNameTable[i], ALStreamSources[0], ALStreamBuffers[0]);
-			
-			if ( aStream[0] && aStream[0]->IsOpened() )
-			{
+
+			if(aStream[0] && aStream[0]->IsOpened()) {
 				uint32 tatalms = aStream[0]->GetLengthMS();
 				delete aStream[0];
 				aStream[0] = NULL;
-				
+
 				nStreamLength[i] = tatalms;
-			}
-			else
+			} else
 				USERERROR("Can't open '%s'\n", StreamedNameTable[i]);
 		}
 #ifdef AUDIO_CACHE
 		cacheFile = fcaseopen("audio\\sound.cache", "wb");
-		fwrite(nStreamLength, sizeof(uint32), TOTAL_STREAMED_SOUNDS, cacheFile);
-		fclose(cacheFile);
-#endif
+		if(cacheFile) {
+			debug("Saving audio cache\n");
+			fwrite(nStreamLength, sizeof(uint32), TOTAL_STREAMED_SOUNDS, cacheFile);
+			fclose(cacheFile);
+		} else {
+			debug("Cannot save audio cache\n");
+		}
 	}
+#endif
 
 	{
 		if ( !InitialiseSampleBanks() )

@@ -75,7 +75,7 @@ CAutomobile::CAutomobile(int32 id, uint8 CreatedBy)
 
 	SetModelIndex(id);
 
-	pHandling = mod_HandlingManager.GetHandlingData((eHandlingId)mi->m_handlingId);
+	pHandling = mod_HandlingManager.GetHandlingData((tVehicleType)mi->m_handlingId);
 
 	m_auto_unused1 = 20.0f;
 	m_auto_unused2 = 0;
@@ -216,12 +216,15 @@ CAutomobile::SetModelIndex(uint32 id)
 CVector vecDAMAGE_ENGINE_POS_SMALL(-0.1f, -0.1f, 0.0f);
 CVector vecDAMAGE_ENGINE_POS_BIG(-0.5f, -0.3f, 0.0f);
 
+#pragma optimize("", off) // that's what R* did
+
 void
 CAutomobile::ProcessControl(void)
 {
 	int i;
 	float wheelRot;
 	CColModel *colModel;
+	float brake = 0.0f;
 
 	if(bUsingSpecialColModel)
 		colModel = &CWorld::Players[CWorld::PlayerInFocus].m_ColModel;
@@ -537,7 +540,6 @@ CAutomobile::ProcessControl(void)
 		break;
 	}
 
-	float brake;
 	if(skipPhysics){
 		bHasContacted = false;
 		bIsInSafePosition = false;
@@ -723,7 +725,7 @@ CAutomobile::ProcessControl(void)
 			traction *= 4.0f;
 
 		if(FindPlayerVehicle() && FindPlayerVehicle() == this){
-			if(CPad::GetPad(0)->WeaponJustDown()){
+			if(CPad::GetPad(0)->CarGunJustDown()){
 				if(m_bombType == CARBOMB_TIMED){
 					m_bombType = CARBOMB_TIMEDACTIVE;
 					m_nBombTimer = 7000;
@@ -768,7 +770,7 @@ CAutomobile::ProcessControl(void)
 					adhesion *= CSurfaceTable::GetWetMultiplier(m_aWheelColPoints[CARWHEEL_FRONT_LEFT].surfaceB);
 				WheelState[CARWHEEL_FRONT_LEFT] = m_aWheelState[CARWHEEL_FRONT_LEFT];
 
-				if(Damage.GetWheelStatus(VEHWHEEL_FRONT_LEFT) == WHEEL_STATUS_BURST)
+				if(Damage.GetWheelStatus(CARWHEEL_FRONT_LEFT) == WHEEL_STATUS_BURST)
 					ProcessWheel(wheelFwd, wheelRight,
 						contactSpeeds[CARWHEEL_FRONT_LEFT], contactPoints[CARWHEEL_FRONT_LEFT],
 						m_nWheelsOnGround, fThrust,
@@ -802,7 +804,7 @@ CAutomobile::ProcessControl(void)
 					adhesion *= CSurfaceTable::GetWetMultiplier(m_aWheelColPoints[CARWHEEL_FRONT_RIGHT].surfaceB);
 				WheelState[CARWHEEL_FRONT_RIGHT] = m_aWheelState[CARWHEEL_FRONT_RIGHT];
 
-				if(Damage.GetWheelStatus(VEHWHEEL_FRONT_RIGHT) == WHEEL_STATUS_BURST)
+				if(Damage.GetWheelStatus(CARWHEEL_FRONT_RIGHT) == WHEEL_STATUS_BURST)
 					ProcessWheel(wheelFwd, wheelRight,
 						contactSpeeds[CARWHEEL_FRONT_RIGHT], contactPoints[CARWHEEL_FRONT_RIGHT],
 						m_nWheelsOnGround, fThrust,
@@ -883,7 +885,7 @@ CAutomobile::ProcessControl(void)
 					adhesion *= CSurfaceTable::GetWetMultiplier(m_aWheelColPoints[CARWHEEL_REAR_LEFT].surfaceB);
 				WheelState[CARWHEEL_REAR_LEFT] = m_aWheelState[CARWHEEL_REAR_LEFT];
 
-				if(Damage.GetWheelStatus(VEHWHEEL_REAR_LEFT) == WHEEL_STATUS_BURST)
+				if(Damage.GetWheelStatus(CARWHEEL_REAR_LEFT) == WHEEL_STATUS_BURST)
 					ProcessWheel(wheelFwd, wheelRight,
 						contactSpeeds[CARWHEEL_REAR_LEFT], contactPoints[CARWHEEL_REAR_LEFT],
 						m_nWheelsOnGround, fThrust,
@@ -917,7 +919,7 @@ CAutomobile::ProcessControl(void)
 					adhesion *= CSurfaceTable::GetWetMultiplier(m_aWheelColPoints[CARWHEEL_REAR_RIGHT].surfaceB);
 				WheelState[CARWHEEL_REAR_RIGHT] = m_aWheelState[CARWHEEL_REAR_RIGHT];
 
-				if(Damage.GetWheelStatus(VEHWHEEL_REAR_RIGHT) == WHEEL_STATUS_BURST)
+				if(Damage.GetWheelStatus(CARWHEEL_REAR_RIGHT) == WHEEL_STATUS_BURST)
 					ProcessWheel(wheelFwd, wheelRight,
 						contactSpeeds[CARWHEEL_REAR_RIGHT], contactPoints[CARWHEEL_REAR_RIGHT],
 						m_nWheelsOnGround, fThrust,
@@ -1213,6 +1215,8 @@ CAutomobile::ProcessControl(void)
 		}
 	}
 }
+
+#pragma optimize("", on)
 
 void
 CAutomobile::Teleport(CVector pos)
@@ -3946,10 +3950,10 @@ void
 CAutomobile::BurstTyre(uint8 wheel)
 {
 	switch(wheel){
-	case CAR_PIECE_WHEEL_LF: wheel = VEHWHEEL_FRONT_LEFT; break;
-	case CAR_PIECE_WHEEL_LR: wheel = VEHWHEEL_REAR_LEFT; break;
-	case CAR_PIECE_WHEEL_RF: wheel = VEHWHEEL_FRONT_RIGHT; break;
-	case CAR_PIECE_WHEEL_RR: wheel = VEHWHEEL_REAR_RIGHT; break;
+	case CAR_PIECE_WHEEL_LF: wheel = CARWHEEL_FRONT_LEFT; break;
+	case CAR_PIECE_WHEEL_RF: wheel = CARWHEEL_FRONT_RIGHT; break;
+	case CAR_PIECE_WHEEL_LR: wheel = CARWHEEL_REAR_LEFT; break;
+	case CAR_PIECE_WHEEL_RR: wheel = CARWHEEL_REAR_RIGHT; break;
 	}
 
 	int status = Damage.GetWheelStatus(wheel);
@@ -4180,6 +4184,93 @@ CAutomobile::HasCarStoppedBecauseOfLight(void)
 	}
 
 	return false;
+}
+
+void
+CPed::DeadPedMakesTyresBloody(void)
+{
+	int minX = CWorld::GetSectorIndexX(GetPosition().x - 2.0f);
+	if (minX < 0) minX = 0;
+	int minY = CWorld::GetSectorIndexY(GetPosition().y - 2.0f);
+	if (minY < 0) minY = 0;
+	int maxX = CWorld::GetSectorIndexX(GetPosition().x + 2.0f);
+	if (maxX > NUMSECTORS_X-1) maxX = NUMSECTORS_X-1;
+	int maxY = CWorld::GetSectorIndexY(GetPosition().y + 2.0f);
+	if (maxY > NUMSECTORS_Y-1) maxY = NUMSECTORS_Y-1;
+
+	CWorld::AdvanceCurrentScanCode();
+
+	for (int curY = minY; curY <= maxY; curY++) {
+		for (int curX = minX; curX <= maxX; curX++) {
+			CSector *sector = CWorld::GetSector(curX, curY);
+			MakeTyresMuddySectorList(sector->m_lists[ENTITYLIST_VEHICLES]);
+			MakeTyresMuddySectorList(sector->m_lists[ENTITYLIST_VEHICLES_OVERLAP]);
+		}
+	}
+}
+
+void
+CPed::MakeTyresMuddySectorList(CPtrList &list)
+{
+	for (CPtrNode *node = list.first; node; node = node->next) {
+		CVehicle *veh = (CVehicle*)node->item;
+		if (veh->IsCar() && veh->m_scanCode != CWorld::GetCurrentScanCode()) {
+			veh->m_scanCode = CWorld::GetCurrentScanCode();
+
+			if (Abs(GetPosition().x - veh->GetPosition().x) < 10.0f) {
+
+				if (Abs(GetPosition().y - veh->GetPosition().y) < 10.0f
+					&& veh->m_vecMoveSpeed.MagnitudeSqr2D() > 0.05f) {
+
+					for(int wheel = 0; wheel < 4; wheel++) {
+
+						if (!((CAutomobile*)veh)->m_aWheelSkidmarkBloody[wheel]
+							&& ((CAutomobile*)veh)->m_aSuspensionSpringRatio[wheel] < 1.0f) {
+
+							CColModel *vehCol = veh->GetModelInfo()->GetColModel();
+							CVector approxWheelOffset;
+							switch (wheel) {
+								case 0:
+									approxWheelOffset = CVector(-vehCol->boundingBox.max.x, vehCol->boundingBox.max.y, 0.0f);
+									break;
+								case 1:
+									approxWheelOffset = CVector(-vehCol->boundingBox.max.x, vehCol->boundingBox.min.y, 0.0f);
+									break;
+								case 2:
+									approxWheelOffset = CVector(vehCol->boundingBox.max.x, vehCol->boundingBox.max.y, 0.0f);
+									break;
+								case 3:
+									approxWheelOffset = CVector(vehCol->boundingBox.max.x, vehCol->boundingBox.min.y, 0.0f);
+									break;
+								default:
+									break;
+							}
+
+							// I hope so
+							CVector wheelPos = veh->GetMatrix() * approxWheelOffset;
+							if (Abs(wheelPos.z - GetPosition().z) < 2.0f) {
+
+								if ((wheelPos - GetPosition()).MagnitudeSqr2D() < 1.0f) {
+									if (CGame::nastyGame) {
+										((CAutomobile*)veh)->m_aWheelSkidmarkBloody[wheel] = true;
+										DMAudio.PlayOneShot(veh->m_audioEntityId, SOUND_SPLATTER, 0.0f);
+									}
+									veh->ApplyMoveForce(CVector(0.0f, 0.0f, 50.0f));
+									
+									CVector vehAndWheelDist = wheelPos - veh->GetPosition();
+									veh->ApplyTurnForce(CVector(0.0f, 0.0f, 50.0f), vehAndWheelDist);
+
+									if (veh == FindPlayerVehicle()) {
+										CPad::GetPad(0)->StartShake(300, 70);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 void

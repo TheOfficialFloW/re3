@@ -79,10 +79,15 @@ typedef int16_t int16;
 typedef uint32_t uint32;
 typedef int32_t int32;
 typedef uintptr_t uintptr;
+typedef intptr_t intptr;
 typedef uint64_t uint64;
 typedef int64_t int64;
 // hardcode ucs-2
 typedef uint16_t wchar;
+
+#if defined(_MSC_VER)
+typedef ptrdiff_t ssize_t;
+#endif
 
 #ifndef nil
 #define nil NULL
@@ -122,17 +127,43 @@ inline uint32 ldb(uint32 p, uint32 s, uint32 w)
 #include "skeleton.h"
 #include "Draw.h"
 
-#define DEFAULT_SCREEN_WIDTH (640)
-#define DEFAULT_SCREEN_HEIGHT (448)
-#define DEFAULT_SCREEN_HEIGHT_PAL (512)
-#define DEFAULT_SCREEN_HEIGHT_NTSC (448)
+#if defined(USE_PROPER_SCALING)
+	#ifdef FORCE_PC_SCALING
+		#define DEFAULT_SCREEN_WIDTH  (640)
+		#define DEFAULT_SCREEN_HEIGHT (448)
+	#else
+		#define DEFAULT_SCREEN_WIDTH  (640)
+		#define DEFAULT_SCREEN_HEIGHT (480)
+	#endif
+#elif defined(GTA_PS2)
+		#define DEFAULT_SCREEN_WIDTH  (640)
+		#define DEFAULT_SCREEN_HEIGHT (480)
+#else //elif defined(GTA_PC)
+		#define DEFAULT_SCREEN_WIDTH  (640)
+		#define DEFAULT_SCREEN_HEIGHT (448)
+#endif
+
 #define DEFAULT_ASPECT_RATIO (4.0f/3.0f)
 #define DEFAULT_VIEWWINDOW (0.7f)
 
 // game uses maximumWidth/Height, but this probably won't work
 // with RW windowed mode
-#define SCREEN_WIDTH ((float)RsGlobal.width)
+#ifdef GTA_PS2
+	#ifdef GTA_PAL
+		#define SCREEN_WIDTH  ((float)640)
+		#define SCREEN_HEIGHT ((float)512)
+	#else
+		#define SCREEN_WIDTH  ((float)640)
+		#define SCREEN_HEIGHT ((float)448)
+	#endif
+#else
+#define SCREEN_WIDTH  ((float)RsGlobal.width)
 #define SCREEN_HEIGHT ((float)RsGlobal.height)
+#endif
+
+#define SCREEN_HEIGHT_PAL (512)
+#define SCREEN_HEIGHT_NTSC (448)
+
 #define SCREEN_ASPECT_RATIO (CDraw::GetAspectRatio())
 #define SCREEN_VIEWWINDOW (Tan(DEGTORAD(CDraw::GetScaledFOV() * 0.5f)))
 
@@ -254,8 +285,14 @@ void re3_usererror(const char *format, ...);
 
 #define DEBUGBREAK() __debugbreak();
 
-#define debug(f, ...) re3_debug("[DBG]: " f, ## __VA_ARGS__)
+// Switch to enable development messages.
+#if 1 
+#define DEV(f, ...)
+#else
 #define DEV(f, ...)   re3_debug("[DEV]: " f, ## __VA_ARGS__)
+#endif
+
+#define debug(f, ...) re3_debug("[DBG]: " f, ## __VA_ARGS__)
 #define TRACE(f, ...) re3_trace(__FILE__, __LINE__, __FUNCTION__, f, ## __VA_ARGS__)
 #define Error(f, ...) re3_debug("[ERROR]: " f, ## __VA_ARGS__)
 #define USERERROR(f, ...) re3_usererror(f, ## __VA_ARGS__)

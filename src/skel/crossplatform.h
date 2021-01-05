@@ -5,6 +5,7 @@
 #define GLFW_RELEASE                0
 #define GLFW_PRESS                  1
 
+#define GLFW_KEY_D                  68
 #define GLFW_KEY_R                  82
 
 #define GLFW_MOUSE_BUTTON_1         0
@@ -197,9 +198,6 @@ enum eGameState
     GS_FRONTEND,
     GS_INIT_PLAYING_GAME,
     GS_PLAYING_GAME,
-#ifndef MASTER
-    GS_ANIMVIEWER,
-#endif
 };
 extern RwUInt32 gGameState;
 

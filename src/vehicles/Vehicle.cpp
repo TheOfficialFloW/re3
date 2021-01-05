@@ -405,7 +405,7 @@ CVehicle::FlyingControl(eFlightModel flightModel)
 		else
 			fThrust = fThrustVar * (CPad::GetPad(0)->GetAccelerate() - 2 * CPad::GetPad(0)->GetBrake()) / 255.0f + 0.95f;
 		fThrust -= fRotorFallOff * DotProduct(m_vecMoveSpeed, GetUp());
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 		if (fThrust > 0.9f && GetPosition().z > 80.0f)
 			fThrust = 0.9f;
 #endif
@@ -531,9 +531,9 @@ CVehicle::ProcessWheel(CVector &wheelFwd, CVector &wheelRight, CVector &wheelCon
 		if(!bBraking){
 			if(m_fGasPedal < 0.01f){
 				if(GetModelIndex() == MI_RCBANDIT)
-					brake = 0.2f * mod_HandlingManager.fWheelFriction / m_fMass;
+					brake = 0.2f * mod_HandlingManager.fWheelFriction / pHandling->fMass;
 				else
-					brake = mod_HandlingManager.fWheelFriction / m_fMass;
+					brake = mod_HandlingManager.fWheelFriction / pHandling->fMass;
 #ifdef FIX_BUGS
 				brake *= CTimer::GetTimeStepFix();
 #endif
@@ -580,6 +580,13 @@ CVehicle::ProcessWheel(CVector &wheelFwd, CVector &wheelRight, CVector &wheelCon
 		ApplyMoveForce(impulse * direction);
 		ApplyTurnForce(turnImpulse * direction, wheelContactPoint);
 	}
+}
+
+void
+CVehicle::ProcessBikeWheel(CVector &wheelFwd, CVector &wheelRight, CVector &wheelContactSpeed, CVector &wheelContactPoint, int32 wheelsOnGround, float thrust,
+                           float brake, float adhesion, int8 wheelId, float *wheelSpeed, tWheelState *wheelState, eBikeWheelSpecial special, uint16 wheelStatus)
+{
+	// TODO: mobile code
 }
 
 float
@@ -652,7 +659,7 @@ CVehicle::InflictDamage(CEntity* damagedBy, eWeaponType weaponType, float damage
 			if (m_randomSeed < DAMAGE_FLEE_IN_CAR_PROBABILITY_VALUE) {
 				CCarCtrl::SwitchVehicleToRealPhysics(this);
 				AutoPilot.m_nDrivingStyle = DRIVINGSTYLE_AVOID_CARS;
-				AutoPilot.m_nCruiseSpeed = GAME_SPEED_TO_CARAI_SPEED * pHandling->Transmission.fUnkMaxVelocity;
+				AutoPilot.m_nCruiseSpeed = GAME_SPEED_TO_CARAI_SPEED * pHandling->Transmission.fMaxCruiseVelocity;
 				SetStatus(STATUS_PHYSICS);
 			}
 		}
@@ -1164,7 +1171,10 @@ CVehicle::AddPassenger(CPed *passenger, uint8 n)
 void
 CVehicle::RemoveDriver(void)
 {
-	SetStatus(STATUS_ABANDONED);
+#ifdef FIX_BUGS
+	if (GetStatus() != STATUS_WRECKED)
+#endif
+		SetStatus(STATUS_ABANDONED);
 	pDriver = nil;
 }
 

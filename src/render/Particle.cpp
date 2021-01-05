@@ -3,6 +3,7 @@
 #include "General.h"
 #include "Timer.h"
 #include "TxdStore.h"
+#include "Entity.h"
 #include "Sprite.h"
 #include "Camera.h"
 #include "Collision.h"
@@ -388,9 +389,11 @@ void CParticle::Initialise()
 
 	gpFlame5Tex = RwTextureRead("flame5", nil);
 	
-#ifdef FIX_BUGS
+//#ifdef FIX_BUGS
+#if 0
 	gpFlame5Raster = RwTextureGetRaster(gpFlame5Tex);
 #else
+	// this seems to have become more of a design choice
 	gpFlame5Raster = RwTextureGetRaster(gpFlame1Tex);	// copy-paste bug ?
 #endif
 
@@ -583,6 +586,40 @@ void CParticle::Initialise()
 	debug("CParticle ready");
 }
 
+void
+CEntity::AddSteamsFromGround(CVector *unused)
+{
+	int i, n;
+	C2dEffect *effect;
+	CVector pos;
+
+	n = CModelInfo::GetModelInfo(GetModelIndex())->GetNum2dEffects();
+	for(i = 0; i < n; i++){
+		effect = CModelInfo::GetModelInfo(GetModelIndex())->Get2dEffect(i);
+		if(effect->type != EFFECT_PARTICLE)
+			continue;
+
+		pos = GetMatrix() * effect->pos;
+		switch(effect->particle.particleType){
+		case 0:
+			CParticleObject::AddObject(POBJECT_PAVEMENT_STEAM, pos, effect->particle.dir, effect->particle.scale, false);
+			break;
+		case 1:
+			CParticleObject::AddObject(POBJECT_WALL_STEAM, pos, effect->particle.dir, effect->particle.scale, false);
+			break;
+		case 2:
+			CParticleObject::AddObject(POBJECT_DRY_ICE, pos, effect->particle.scale, false);
+			break;
+		case 3:
+			CParticleObject::AddObject(POBJECT_SMALL_FIRE, pos, effect->particle.dir, effect->particle.scale, false);
+			break;
+		case 4:
+			CParticleObject::AddObject(POBJECT_DARK_SMOKE, pos, effect->particle.dir, effect->particle.scale, false);
+			break;
+		}
+	}
+}
+
 void CParticle::Shutdown()
 {
 	debug("Shutting down CParticle...");
@@ -590,7 +627,7 @@ void CParticle::Shutdown()
 	for ( int32 i = 0; i < MAX_SMOKE_FILES; i++ )
 	{
 		RwTextureDestroy(gpSmokeTex[i]);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 		gpSmokeTex[i] = nil;
 #endif
 	}
@@ -598,7 +635,7 @@ void CParticle::Shutdown()
 	for ( int32 i = 0; i < MAX_SMOKE2_FILES; i++ )
 	{
 		RwTextureDestroy(gpSmoke2Tex[i]);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 		gpSmoke2Tex[i] = nil;
 #endif
 	}
@@ -606,7 +643,7 @@ void CParticle::Shutdown()
 	for ( int32 i = 0; i < MAX_RUBBER_FILES; i++ )
 	{
 		RwTextureDestroy(gpRubberTex[i]);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 		gpRubberTex[i] = nil;
 #endif
 	}
@@ -614,7 +651,7 @@ void CParticle::Shutdown()
 	for ( int32 i = 0; i < MAX_RAINSPLASH_FILES; i++ )
 	{
 		RwTextureDestroy(gpRainSplashTex[i]);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 		gpRainSplashTex[i] = nil;
 #endif
 	}
@@ -622,7 +659,7 @@ void CParticle::Shutdown()
 	for ( int32 i = 0; i < MAX_WATERSPRAY_FILES; i++ )
 	{
 		RwTextureDestroy(gpWatersprayTex[i]);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 		gpWatersprayTex[i] = nil;
 #endif
 	}
@@ -630,7 +667,7 @@ void CParticle::Shutdown()
 	for ( int32 i = 0; i < MAX_EXPLOSIONMEDIUM_FILES; i++ )
 	{
 		RwTextureDestroy(gpExplosionMediumTex[i]);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 		gpExplosionMediumTex[i] = nil;
 #endif
 	}
@@ -638,7 +675,7 @@ void CParticle::Shutdown()
 	for ( int32 i = 0; i < MAX_GUNFLASH_FILES; i++ )
 	{
 		RwTextureDestroy(gpGunFlashTex[i]);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 		gpGunFlashTex[i] = nil;
 #endif
 	}
@@ -646,7 +683,7 @@ void CParticle::Shutdown()
 	for ( int32 i = 0; i < MAX_RAINDROP_FILES; i++ )
 	{
 		RwTextureDestroy(gpRainDropTex[i]);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 		gpRainDropTex[i] = nil;
 #endif
 	}
@@ -654,7 +691,7 @@ void CParticle::Shutdown()
 	for ( int32 i = 0; i < MAX_RAINSPLASHUP_FILES; i++ )
 	{
 		RwTextureDestroy(gpRainSplashupTex[i]);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 		gpRainSplashupTex[i] = nil;
 #endif
 	}
@@ -662,7 +699,7 @@ void CParticle::Shutdown()
 	for ( int32 i = 0; i < MAX_BIRDFRONT_FILES; i++ )
 	{
 		RwTextureDestroy(gpBirdfrontTex[i]);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 		gpBirdfrontTex[i] = nil;
 #endif
 	}
@@ -670,7 +707,7 @@ void CParticle::Shutdown()
 	for ( int32 i = 0; i < MAX_CARDEBRIS_FILES; i++ )
 	{
 		RwTextureDestroy(gpCarDebrisTex[i]);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 		gpCarDebrisTex[i] = nil;
 #endif
 	}
@@ -678,78 +715,78 @@ void CParticle::Shutdown()
 	for ( int32 i = 0; i < MAX_CARSPLASH_FILES; i++ )
 	{
 		RwTextureDestroy(gpCarSplashTex[i]);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 		gpCarSplashTex[i] = nil;
 #endif
 	}
 	
 	RwTextureDestroy(gpFlame1Tex);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 	gpFlame1Tex = nil;
 #endif
 
 	RwTextureDestroy(gpFlame5Tex);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 	gpFlame5Tex = nil;
 #endif
 	
 	RwTextureDestroy(gpRainDropSmallTex);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 	gpRainDropSmallTex = nil;
 #endif
 	
 	RwTextureDestroy(gpBloodTex);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 	gpBloodTex = nil;
 #endif
 	
 	RwTextureDestroy(gpLeafTex);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 	gpLeafTex = nil;
 #endif
 	
 	RwTextureDestroy(gpCloudTex1);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 	gpCloudTex1 = nil;
 #endif
 	
 	RwTextureDestroy(gpCloudTex4);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 	gpCloudTex4 = nil;
 #endif
 	
 	RwTextureDestroy(gpBloodSmallTex);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 	gpBloodSmallTex = nil;
 #endif
 	
 	RwTextureDestroy(gpGungeTex);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 	gpGungeTex = nil;
 #endif
 	
 	RwTextureDestroy(gpCollisionSmokeTex);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 	gpCollisionSmokeTex = nil;
 #endif
 	
 	RwTextureDestroy(gpBulletHitTex);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 	gpBulletHitTex = nil;
 #endif
 	
 	RwTextureDestroy(gpGunShellTex);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 	gpGunShellTex = nil;
 #endif
 	
 	RwTextureDestroy(gpWakeOldTex);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 	gpWakeOldTex = nil;
 #endif
 	
 	RwTextureDestroy(gpPointlightTex);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 	gpPointlightTex = nil;
 #endif
 
@@ -1570,7 +1607,7 @@ void CParticle::Render()
 				float w;
 				float h;
 
-				if ( CSprite::CalcScreenCoors(particle->m_vecPosition, coors, &w, &h, true) )
+				if ( CSprite::CalcScreenCoors(particle->m_vecPosition, &coors, &w, &h, true) )
 				{
 #ifdef PC_PARTICLE
 					if ( (!particleBanned || SCREEN_WIDTH * fParticleScaleLimit >= w)
@@ -1650,7 +1687,7 @@ void CParticle::Render()
 							float fRotation;
 							float fTrailLength;
 							
-							if ( CSprite::CalcScreenCoors(vecPrevPos, particle->m_vecScreenPosition, &fTrailLength, &fRotation, true) )
+							if ( CSprite::CalcScreenCoors(vecPrevPos, &particle->m_vecScreenPosition, &fTrailLength, &fRotation, true) )
 							{
 								CVector2D vecDist
 								(

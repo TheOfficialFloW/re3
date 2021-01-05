@@ -184,7 +184,6 @@ int clock_gettime(int clk_id, struct timespec *tp)
 
 int lstat(const char *path, struct stat *buf)
 {
-	debug("lstat %s\n", path);
 	return stat(path, buf);
 }
 
@@ -197,13 +196,12 @@ char *realpath(const char *path, char *resolved_path)
 		strcpy(resolved_path, path);
 	else
 		sprintf(resolved_path, "%s/%s", data_path, path);
-	debug("realpath %s -> %s\n", path, resolved_path);
+
 	return resolved_path;
 }
 
 ssize_t readlink(const char *path, char *buf, size_t bufsiz)
 {
-	debug("readlink %s\n", path);
 	return 0;
 }
 
@@ -221,7 +219,6 @@ int chdir(const char *path)
 		strcpy(cur_dir, path);
 	else
 		sprintf(cur_dir, "%s/%s", cur_dir, path);
-	debug("chdir %s -> %s\n", path, cur_dir);
 	return 0;
 }
 
@@ -244,7 +241,6 @@ int unlink(const char *pathname)
 HANDLE FindFirstFile(const char* pathname, WIN32_FIND_DATA* firstfile) {
 	char pathCopy[MAX_PATH];
 	snprintf(pathCopy, sizeof(pathCopy), "ux0:data/gta3/%s", pathname);
-	debug("FindFirstFile %s\n", pathname);
 
 	char *folder = strtok(pathCopy, "*");
 	char *extension = strtok(NULL, "*");
@@ -289,7 +285,6 @@ bool FindNextFile(HANDLE d, WIN32_FIND_DATA* finddata) {
 
 			sprintf(relativepath, "%s/%s", finddata->folder, file->d_name);
 			realpath(relativepath, path);
-			debug("FindNextFile %s\n", path);
 			stat(path, &fileStats);
 			strncpy(finddata->cFileName, file->d_name, sizeof(finddata->cFileName));
 			finddata->ftLastWriteTime = fileStats.st_mtime;
@@ -467,7 +462,6 @@ FILE* _fcaseopen(char const* filename, char const* mode)
         result = fopen(filename, mode);
     else {
         result = fopen(real, mode);
-        debug("fopen %s -> %p\n", real, result);
         free(real);
     }
     return result;

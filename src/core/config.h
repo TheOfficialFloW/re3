@@ -1,27 +1,27 @@
 #pragma once
 
 enum Config {
-	NUMPLAYERS = 1,
+	NUMPLAYERS = 1,	// 4 on PS2
 
 	NUMCDIMAGES = 12, // gta3.img duplicates (not used on PC)
 	MAX_CDIMAGES = 8, // additional cdimages
 	MAX_CDCHANNELS = 5,
 
-	MODELINFOSIZE = 5500,
+	MODELINFOSIZE = 5500,	// 3150 on PS2
 //	TXDSTORESIZE = 850,
 	TXDSTORESIZE = 1024,	// for Xbox map
 	EXTRADIRSIZE = 128,
 	CUTSCENEDIRSIZE = 512,
 
-	SIMPLEMODELSIZE = 5000,
+	SIMPLEMODELSIZE = 5000,	// 2910 on PS2
 	MLOMODELSIZE = 1,
 	MLOINSTANCESIZE = 1,
 	TIMEMODELSIZE = 30,
 	CLUMPMODELSIZE = 5,
 	PEDMODELSIZE = 90,
-	VEHICLEMODELSIZE = 120,
+	VEHICLEMODELSIZE = 120,	// 70 on PS2
 	XTRACOMPSMODELSIZE = 2,
-	TWODFXSIZE = 2000,
+	TWODFXSIZE = 2000,	// 1210 on PS2
 
 	MAXVEHICLESLOADED = 50, // 70 on mobile
 
@@ -135,10 +135,6 @@ enum Config {
 	NUM_EXPLOSIONS = 48,
 };
 
-// We'll use this once we're ready to become independent of the game
-// Use it to mark bugs in the code that will prevent the game from working then
-//#define STANDALONE
-
 // We don't expect to compile for PS2 or Xbox
 // but it might be interesting for documentation purposes
 #define GTA_PC
@@ -165,6 +161,16 @@ enum Config {
 #define FINAL
 #endif
 
+// Version defines
+#define GTA3_PS2_140	300
+#define GTA3_PS2_160	301
+#define GTA3_PC_10	310
+#define GTA3_PC_11	311
+#define GTA3_PC_STEAM	312
+// TODO? maybe something for xbox or android?
+
+#define GTA_VERSION	GTA3_PC_11
+
 // quality of life fixes that should also be in FINAL
 #define NASTY_GAME	// nasty game for all languages
 #define NO_CDCHECK
@@ -173,24 +179,31 @@ enum Config {
 #define DRAW_GAME_VERSION_TEXT
 #define DRAW_MENU_VERSION_TEXT
 
+// Memory allocation and compression
+// #define USE_CUSTOM_ALLOCATOR		// use CMemoryHeap for allocation. use with care, not finished yet
+//#define COMPRESSED_COL_VECTORS	// use compressed vectors for collision vertices
+//#define ANIM_COMPRESSION	// only keep most recently used anims uncompressed
+
 #if defined GTA_PS2
 #	define GTA_PS2_STUFF
 #	define RANDOMSPLASH
+#	define USE_CUSTOM_ALLOCATOR
 #	define VU_COLLISION
 #	define ANIM_COMPRESSION
 #elif defined GTA_PC
-#	define GTA3_1_1_PATCH
-//#	define GTA3_STEAM_PATCH
 #	ifdef GTA_PS2_STUFF
 #		define USE_PS2_RAND
 #		define RANDOMSPLASH	// use random splash as on PS2
 #		define PS2_MATFX
 #	endif
+#	define PC_PLAYER_CONTROLS	// mouse player/cam mode
+#	define GTA_REPLAY
+#	define GTA_SCENE_EDIT
 #elif defined GTA_XBOX
 #endif
 
 #ifdef VU_COLLISION
-#define COMPRESSED_COL_VECTORS	// current need compressed vectors in this code
+#define COMPRESSED_COL_VECTORS	// currently need compressed vectors in this code
 #endif
 
 #ifdef MASTER
@@ -230,13 +243,20 @@ enum Config {
 #define ASPECT_RATIO_SCALE	// Not just makes everything scale with aspect ratio, also adds support for all aspect ratios
 #define DEFAULT_NATIVE_RESOLUTION	// Set default video mode to your native resolution (fixes Windows 10 launch)
 #define USE_TXD_CDIMAGE		// generate and load textures from txd.img
-// #define PS2_ALPHA_TEST		// emulate ps2 alpha test 
+//#define PS2_ALPHA_TEST		// emulate ps2 alpha test 
 #define IMPROVED_VIDEOMODE	// save and load videomode parameters instead of a magic number
 //#define DISABLE_LOADING_SCREEN // disable the loading screen which vastly improves the loading time
+#define DISABLE_VSYNC_ON_TEXTURE_CONVERSION // make texture conversion work faster by disabling vsync
 //#define USE_TEXTURE_POOL
 #ifdef LIBRW
-//#define EXTENDED_COLOURFILTER		// more options for colour filter (replaces mblur)
+#define EXTENDED_COLOURFILTER		// more options for colour filter (replaces mblur)
 //#define EXTENDED_PIPELINES		// custom render pipelines (includes Neo)
+//#define SCREEN_DROPLETS			// neo water droplets
+//#define NEW_RENDERER		// leeds-like world rendering, needs librw
+#endif
+
+#ifndef EXTENDED_COLOURFILTER
+#undef SCREEN_DROPLETS		// we need the backbuffer for this effect
 #endif
 
 // Particle
@@ -255,13 +275,16 @@ enum Config {
 #define ALLCARSHELI_CHEAT
 #define ALT_DODO_CHEAT
 #define REGISTER_START_BUTTON
-//#define BIND_VEHICLE_FIREWEAPON // Adds ability to rebind fire key for 'in vehicle' controls
+#define BIND_VEHICLE_FIREWEAPON // Adds ability to rebind fire key for 'in vehicle' controls
 #define BUTTON_ICONS // use textures to show controller buttons
 
 // Hud, frontend and radar
+//#define PS2_HUD
 #define HUD_ENHANCEMENTS	// Adjusts some aspects to make the HUD look/behave a little bit better.
 // #define BETA_SLIDING_TEXT
 #define TRIANGULAR_BLIPS	// height indicating triangular radar blips, as in VC
+// #define XBOX_SUBTITLES	// the infamous outlines
+#define RADIO_OFF_TEXT
 #define PC_MENU
 
 #ifndef PC_MENU
@@ -277,7 +300,7 @@ enum Config {
 #	define CUSTOM_FRONTEND_OPTIONS
 
 #	ifdef CUSTOM_FRONTEND_OPTIONS
-#		define GRAPHICS_MENU_OPTIONS // otherwise Advanced Options menu will appear if Display is full
+#		define GRAPHICS_MENU_OPTIONS // otherwise Display settings will be scrollable
 #		define NO_ISLAND_LOADING  // disable loadscreen between islands via loading all island data at once, consumes more memory and CPU
 #		define CUTSCENE_BORDERS_SWITCH
 #		define MULTISAMPLING		// adds MSAA option
@@ -326,23 +349,22 @@ enum Config {
 #define FREE_CAM		// Rotating cam
 
 // Audio
-#ifndef AUDIO_OAL // is not working yet for openal
-#define AUDIO_CACHE // cache sound lengths to speed up the cold boot
-#endif
+#define RADIO_SCROLL_TO_PREV_STATION
+#define AUDIO_CACHE
 //#define PS2_AUDIO   // changes audio paths for cutscenes and radio to PS2 paths, needs vbdec to support VB with MSS
 
 // IMG
 #define BIG_IMG // allows to read larger img files
 
-//#define SQUEEZE_PERFORMANCE
+#define SQUEEZE_PERFORMANCE
 #ifdef SQUEEZE_PERFORMANCE
 	#undef PS2_ALPHA_TEST
 	#undef NO_ISLAND_LOADING
 	#define PC_PARTICLE
 	#define VC_PED_PORTS // To not process collisions always. But should be tested if that's really beneficial
+	#define VC_RAIN_NERF // Reduces number of rain particles
 #endif
 
 #ifdef LIBRW
 // these are not supported with librw yet
-#	undef MULTISAMPLING
 #endif

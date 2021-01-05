@@ -116,6 +116,10 @@ public:
 	static void InitPerFrame(void);
 	static void PrintChar(float x, float y, wchar c);
 	static void PrintString(float x, float y, wchar *s);
+#ifdef XBOX_SUBTITLES
+	static void PrintStringFromBottom(float x, float y, wchar *str);
+	static void PrintOutlinedString(float x, float y, wchar *str, float outlineStrength, bool fromBottom, CRGBA outlineColor);
+#endif
 	static int GetNumberLines(float xstart, float ystart, wchar *s);
 	static void GetTextRect(CRect *rect, float xstart, float ystart, wchar *s);
 #ifdef MORE_LANGUAGES
@@ -168,23 +172,6 @@ public:
 	}
 	static void SetCentreOff(void) {
 		Details.centre = false;
-	}
-	static void SetAlignment(uint8 alignment) {
-		if (alignment == ALIGN_LEFT) {
-			CFont::Details.justify = true;
-			CFont::Details.centre = false;
-			CFont::Details.rightJustify = false;
-		}
-		else if (alignment == ALIGN_CENTER) {
-			CFont::Details.justify = false;
-			CFont::Details.centre = true;
-			CFont::Details.rightJustify = false;
-		}
-		else if (alignment == ALIGN_RIGHT) {
-			CFont::Details.justify = false;
-			CFont::Details.centre = false;
-			CFont::Details.rightJustify = true;
-		}
 	}
 	static void SetWrapx(float x) { Details.wrapX = x; }
 	static void SetCentreSize(float s) { Details.centreSize = s; }

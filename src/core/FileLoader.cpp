@@ -11,7 +11,6 @@
 #include "HandlingMgr.h"
 #include "CarCtrl.h"
 #include "PedType.h"
-#include "PedStats.h"
 #include "AnimManager.h"
 #include "Game.h"
 #include "RwHelper.h"
@@ -25,6 +24,7 @@
 #include "ZoneCull.h"
 #include "CdStream.h"
 #include "FileLoader.h"
+#include "MemoryHeap.h"
 
 char CFileLoader::ms_line[256];
 
@@ -59,24 +59,36 @@ CFileLoader::LoadLevel(const char *filename)
 		savedTxd = RwTexDictionaryCreate();
 		RwTexDictionarySetCurrent(savedTxd);
 	}
+#if GTA_VERSION <= GTA3_PS2_160
+	CFileMgr::ChangeDir("\\DATA\\");
 	fd = CFileMgr::OpenFile(filename, "r");
+	CFileMgr::ChangeDir("\\");
+#else
+	fd = CFileMgr::OpenFile(filename, "r");
+#endif
 	assert(fd > 0);
 
 	for(line = LoadLine(fd); line; line = LoadLine(fd)){
 		if(*line == '#')
 			continue;
 
-		if(strncmp(line, "EXIT", 9) == 0)	// BUG: 9?
+#ifdef FIX_BUGS
+		if(strncmp(line, "EXIT", 4) == 0)
+#else
+		if(strncmp(line, "EXIT", 9) == 0)
+#endif
 			break;
 
 		if(strncmp(line, "IMAGEPATH", 9) == 0){
 			RwImageSetPath(line + 10);
 		}else if(strncmp(line, "TEXDICTION", 10) == 0){
+			PUSH_MEMID(MEMID_TEXTURES);
 			strcpy(txdname, line+11);
 			LoadingScreenLoadingFile(txdname);
 			RwTexDictionary *txd = LoadTexDictionary(txdname);
 			AddTexDictionaries(savedTxd, txd);
 			RwTexDictionaryDestroy(txd);
+			POP_MEMID();
 		}else if(strncmp(line, "COLFILE", 7) == 0){
 			int level;
 			sscanf(line+8, "%d", &level);
@@ -95,12 +107,16 @@ CFileLoader::LoadLevel(const char *filename)
 			LoadObjectTypes(line + 4);
 		}else if(strncmp(line, "IPL", 3) == 0){
 			if(!objectsLoaded){
+				PUSH_MEMID(MEMID_DEF_MODELS);
 				CModelInfo::ConstructMloClumps();
+				POP_MEMID();
 				CObjectData::Initialise("DATA\\OBJECT.DAT");
 				objectsLoaded = true;
 			}
+			PUSH_MEMID(MEMID_WORLD);
 			LoadingScreenLoadingFile(line + 4);
 			LoadScene(line + 4);
+			POP_MEMID();
 		}else if(strncmp(line, "MAPZONE", 7) == 0){
 			LoadingScreenLoadingFile(line + 8);
 			LoadMapZones(line + 8);
@@ -108,8 +124,10 @@ CFileLoader::LoadLevel(const char *filename)
 #ifndef DISABLE_LOADING_SCREEN
 			LoadSplash(GetRandomSplashScreen());
 #endif
+#ifndef GTA_PS2
 		}else if(strncmp(line, "CDIMAGE", 7) == 0){
 			CdStreamAddImage(line + 8);
+#endif
 		}
 	}
 
@@ -177,7 +195,7 @@ CFileLoader::LoadTexDictionary(const char *filename)
 
 struct ColHeader
 {
-	char ident[4];
+	uint32 ident;
 	uint32 size;
 };
 
@@ -189,11 +207,13 @@ CFileLoader::LoadCollisionFile(const char *filename)
 	CBaseModelInfo *mi;
 	ColHeader header;
 
+	PUSH_MEMID(MEMID_COLLISION);
+
 	debug("Loading collision file %s\n", filename);
 	fd = CFileMgr::OpenFile(filename, "rb");
 
 	while(CFileMgr::Read(fd, (char*)&header, sizeof(header))){
-		assert(strncmp(header.ident, "COLL", 4) == 0);
+		assert(header.ident == 'LLOC');
 		CFileMgr::Read(fd, (char*)work_buff, header.size);
 		memcpy(modelname, work_buff, 24);
 
@@ -212,6 +232,8 @@ CFileLoader::LoadCollisionFile(const char *filename)
 	}
 
 	CFileMgr::CloseFile(fd);
+
+	POP_MEMID();
 }
 
 void
@@ -233,6 +255,7 @@ CFileLoader::LoadCollisionModel(uint8 *buf, CColModel &model, char *modelname)
 	buf += 44;
 	if(model.numSpheres > 0){
 		model.spheres = (CColSphere*)RwMalloc(model.numSpheres*sizeof(CColSphere));
+		REGISTER_MEMPTR(&model.spheres);
 		for(i = 0; i < model.numSpheres; i++){
 			model.spheres[i].Set(*(float*)buf, *(CVector*)(buf+4), buf[16], buf[17]);
 			buf += 20;
@@ -244,6 +267,7 @@ CFileLoader::LoadCollisionModel(uint8 *buf, CColModel &model, char *modelname)
 	buf += 4;
 	if(model.numLines > 0){
 		model.lines = (CColLine*)RwMalloc(model.numLines*sizeof(CColLine));
+		REGISTER_MEMPTR(&model.lines);
 		for(i = 0; i < model.numLines; i++){
 			model.lines[i].Set(*(CVector*)buf, *(CVector*)(buf+12));
 			buf += 24;
@@ -255,6 +279,7 @@ CFileLoader::LoadCollisionModel(uint8 *buf, CColModel &model, char *modelname)
 	buf += 4;
 	if(model.numBoxes > 0){
 		model.boxes = (CColBox*)RwMalloc(model.numBoxes*sizeof(CColBox));
+		REGISTER_MEMPTR(&model.boxes);
 		for(i = 0; i < model.numBoxes; i++){
 			model.boxes[i].Set(*(CVector*)buf, *(CVector*)(buf+12), buf[24], buf[25]);
 			buf += 28;
@@ -266,6 +291,7 @@ CFileLoader::LoadCollisionModel(uint8 *buf, CColModel &model, char *modelname)
 	buf += 4;
 	if(numVertices > 0){
 		model.vertices = (CompressedVector*)RwMalloc(numVertices*sizeof(CompressedVector));
+		REGISTER_MEMPTR(&model.vertices);
 		for(i = 0; i < numVertices; i++){
 			model.vertices[i].Set(*(float*)buf, *(float*)(buf+4), *(float*)(buf+8));
 			if(Abs(*(float*)buf) >= 256.0f ||
@@ -281,6 +307,7 @@ CFileLoader::LoadCollisionModel(uint8 *buf, CColModel &model, char *modelname)
 	buf += 4;
 	if(model.numTriangles > 0){
 		model.triangles = (CColTriangle*)RwMalloc(model.numTriangles*sizeof(CColTriangle));
+		REGISTER_MEMPTR(&model.triangles);
 		for(i = 0; i < model.numTriangles; i++){
 			model.triangles[i].Set(model.vertices, *(int32*)buf, *(int32*)(buf+4), *(int32*)(buf+8), buf[12], buf[13]);
 			buf += 16;
@@ -530,7 +557,6 @@ char *DoubleSidedNames[] = {
 	"overpass_comse",
 	"newdockbuilding",
 	"newdockbuilding2",
-	"newdockbuilding",
 	"policeballhall",
 	"fuzballdoor",
 	"ind_land106",
@@ -554,7 +580,98 @@ char *DoubleSidedNames[] = {
 	"railtrax_2b",
 	"railtrax_straightss",
 	"railtrax_bentr",
+	"ind_land125",
+	"salvstrans",
+	"bridge_liftsec",
+	"subsign1",
+	"carparkfence",
+	"newairportwall4",
+	"apair_terminal",
+	"Helipad",
+	"bar_barrier10",
+	"damissionfence",
+	"sub_floodlite",
+	"suburbbridge1",
+	"damfencing",
+	"demfence08",
+	"damfence07",
+	"damfence06",
+	"damfence05",
+	"damfence04",
+	"damfence03",
+	"damfence02",
+	"damfence01",
+	"Dam_pod2",
+	"Dam_pod1",
+	"columansion_wall",
+	"wrckdhse020",
+	"wrckdhse01",
+	"arc_bridge",
+	"gRD_overpass19kbc",
+	"gRD_overpass19bkb",
+	"gRD_overpass19kb",
+	"gRD_overpass18kb",
+	"road_under",
+	"com_roadkb23",
+	"com_roadkb22",
+	"nbbridgerda",
+	"nbbridgerdb",
+	"policetenkb1",
+	"block3_scraper2",
+	"Clnm_cthdrlfcde",
+	"broadwaybuild",
+	"combillboard03",
+	"com_park3b",
+	"com_docksaa",
+	"newdockbuilding2",
+	"com_roadkb22",
+	"sidebarrier_gaz2",
+	"tunnelsupport1",
+	"skyscrpunbuilt2",
+	"cons_buid02",
+	"rail_platformw",
+	"railtrax_bent1",
+	"nrailstepswest",
+	"building_fucked",
+	"franksclb02",
+	"salvsdetail",
+	"crgoshp01",
+	"shp_wlkway",
+	"bar_barriergate1",
+	"plnt_pylon01",
+	"fishfctory",
+	"doc_crane_cab",
+	"nrailsteps",
+	"iten_club01",
+	"mak_Watertank",
+	"basketballcourt"
+	"carlift01",
+	"carlift02",
+	"iten_chinatown4",
+	"iten_details7",
+	"ind_customroad002"
+	"ind_brgrd1way",
+	"ind_customroad060",
+	"ind_customroad002",
+	"ind_land108",
+	"ind_customroad004",
+	"ind_customroad003",
+	"nbbridgcabls01",
+	"sbwy_tunl_bit",
+	"sbwy_tunl_bend",
+	"sbwy_tunl_cstm11",
+	"sbwy_tunl_cstm10",
+	"sbwy_tunl_cstm9",
+	"sbwy_tunl_cstm8",
+	"sbwy_tunl_cstm7",
+	"sbwy_tunl_cstm6",
+	"sbwy_tunl_cstm5",
+	"sbwy_tunl_cstm4",
+	"sbwy_tunl_cstm3",
+	"sbwy_tunl_cstm2",
+	"sbwy_tunl_cstm1",
 	""
+
 };
 char *TreeNames[] = {
 	"coast_treepatch",
@@ -840,6 +957,9 @@ CFileLoader::AddTexDictionaries(RwTexDictionary *dst, RwTexDictionary *src)
 	RwTexDictionaryForAllTextures(src, MoveTexturesCB, dst);
 }
 
+#define isLine3(l, a, b, c) ((l[0] == a) && (l[1] == b) && (l[2] == c))
+#define isLine4(l, a, b, c, d) ((l[0] == a) && (l[1] == b) && (l[2] == c) && (l[3] == d))
+
 void
 CFileLoader::LoadObjectTypes(const char *filename)
 {
@@ -873,18 +993,18 @@ CFileLoader::LoadObjectTypes(const char *filename)
 			continue;
 
 		if(section == NONE){
-			if(strncmp(line, "objs", 4) == 0) section = OBJS;
-			else if(strncmp(line, "tobj", 4) == 0) section = TOBJ;
-			else if(strncmp(line, "hier", 4) == 0) section = HIER;
-			else if(strncmp(line, "cars", 4) == 0) section = CARS;
-			else if(strncmp(line, "peds", 4) == 0) section = PEDS;
-			else if(strncmp(line, "path", 4) == 0) section = PATH;
-			else if(strncmp(line, "2dfx", 4) == 0) section = TWODFX;
-		}else if(strncmp(line, "end", 3) == 0){
+			if(isLine4(line, 'o','b','j','s')) section = OBJS;
+			else if(isLine4(line, 't','o','b','j')) section = TOBJ;
+			else if(isLine4(line, 'h','i','e','r')) section = HIER;
+			else if(isLine4(line, 'c','a','r','s')) section = CARS;
+			else if(isLine4(line, 'p','e','d','s')) section = PEDS;
+			else if(isLine4(line, 'p','a','t','h')) section = PATH;
+			else if(isLine4(line, '2','d','f','x')) section = TWODFX;
+		}else if(isLine3(line, 'e','n','d')){
 			section = section == MLO ? OBJS : NONE;
 		}else switch(section){
 		case OBJS:
-			if(strncmp(line, "sta", 3) == 0)
+			if(isLine3(line, 's','t','a'))
 				mlo = LoadMLO(line);
 			else
 				LoadObject(line);
@@ -907,9 +1027,9 @@ CFileLoader::LoadObjectTypes(const char *filename)
 		case PATH:
 			if(pathIndex == -1){
 				id = LoadPathHeader(line, pathTypeStr);
-				if(strncmp(pathTypeStr, "ped", 4) == 0)
+				if(strcmp(pathTypeStr, "ped") == 0)
 					pathType = 1;
-				else if(strncmp(pathTypeStr, "car", 4) == 0)
+				else if(strcmp(pathTypeStr, "car") == 0)
 					pathType = 0;
 				pathIndex = 0;
 			}else{
@@ -1044,7 +1164,7 @@ CFileLoader::LoadMLOInstance(int id, const char *line)
 		&rot.x, &rot.y, &rot.z,
 		&angle);
 	float rad = Acos(angle) * 2.0f;
-	CInstance *inst = CModelInfo::GetMloInstanceStore().alloc();
+	CInstance *inst = CModelInfo::GetMloInstanceStore().Alloc();
 	minfo->lastInstance++;
 
 	RwMatrix *matrix = RwMatrixCreate();
@@ -1150,21 +1270,21 @@ CFileLoader::LoadVehicleObject(const char *line)
 	mi->m_level = level;
 	mi->m_compRules = comprules;
 
-	if(strncmp(type, "car", 4) == 0){
+	if(strcmp(type, "car") == 0){
 		mi->m_wheelId = misc;
 		mi->m_wheelScale = wheelScale;
 		mi->m_vehicleType = VEHICLE_TYPE_CAR;
-	}else if(strncmp(type, "boat", 5) == 0){
+	}else if(strcmp(type, "boat") == 0){
 		mi->m_vehicleType = VEHICLE_TYPE_BOAT;
-	}else if(strncmp(type, "train", 6) == 0){
+	}else if(strcmp(type, "train") == 0){
 		mi->m_vehicleType = VEHICLE_TYPE_TRAIN;
-	}else if(strncmp(type, "heli", 5) == 0){
+	}else if(strcmp(type, "heli") == 0){
 		mi->m_vehicleType = VEHICLE_TYPE_HELI;
-	}else if(strncmp(type, "plane", 6) == 0){
+	}else if(strcmp(type, "plane") == 0){
 		mi->m_planeLodId = misc;
 		mi->m_wheelScale = 1.0f;
 		mi->m_vehicleType = VEHICLE_TYPE_PLANE;
-	}else if(strncmp(type, "bike", 5) == 0){
+	}else if(strcmp(type, "bike") == 0){
 		mi->m_bikeSteerAngle = misc;
 		mi->m_wheelScale = wheelScale;
 		mi->m_vehicleType = VEHICLE_TYPE_BIKE;
@@ -1174,31 +1294,31 @@ CFileLoader::LoadVehicleObject(const char *line)
 	mi->m_handlingId = mod_HandlingManager.GetHandlingId(handlingId);
 
 	// Well this is kinda dumb....
-	if(strncmp(vehclass, "poorfamily", 11) == 0){
+	if(strcmp(vehclass, "poorfamily") == 0){
 		mi->m_vehicleClass = CCarCtrl::POOR;
 		while(frequency-- > 0)
 			CCarCtrl::AddToCarArray(id, CCarCtrl::POOR);
-	}else if(strncmp(vehclass, "richfamily", 11) == 0){
+	}else if(strcmp(vehclass, "richfamily") == 0){
 		mi->m_vehicleClass = CCarCtrl::RICH;
 		while(frequency-- > 0)
 			CCarCtrl::AddToCarArray(id, CCarCtrl::RICH);
-	}else if(strncmp(vehclass, "executive", 10) == 0){
+	}else if(strcmp(vehclass, "executive") == 0){
 		mi->m_vehicleClass = CCarCtrl::EXEC;
 		while(frequency-- > 0)
 			CCarCtrl::AddToCarArray(id, CCarCtrl::EXEC);
-	}else if(strncmp(vehclass, "worker", 7) == 0){
+	}else if(strcmp(vehclass, "worker") == 0){
 		mi->m_vehicleClass = CCarCtrl::WORKER;
 		while(frequency-- > 0)
 			CCarCtrl::AddToCarArray(id, CCarCtrl::WORKER);
-	}else if(strncmp(vehclass, "special", 8) == 0){
+	}else if(strcmp(vehclass, "special") == 0){
 		mi->m_vehicleClass = CCarCtrl::SPECIAL;
 		while(frequency-- > 0)
 			CCarCtrl::AddToCarArray(id, CCarCtrl::SPECIAL);
-	}else if(strncmp(vehclass, "big", 4) == 0){
+	}else if(strcmp(vehclass, "big") == 0){
 		mi->m_vehicleClass = CCarCtrl::BIG;
 		while(frequency-- > 0)
 			CCarCtrl::AddToCarArray(id, CCarCtrl::BIG);
-	}else if(strncmp(vehclass, "taxi", 5) == 0){
+	}else if(strcmp(vehclass, "taxi") == 0){
 		mi->m_vehicleClass = CCarCtrl::TAXI;
 		while(frequency-- > 0)
 			CCarCtrl::AddToCarArray(id, CCarCtrl::TAXI);
@@ -1284,7 +1404,7 @@ CFileLoader::Load2dEffect(const char *line)
 	CTxdStore::SetCurrentTxd(CTxdStore::FindTxdSlot("particle"));
 
 	mi = CModelInfo::GetModelInfo(id);
-	effect = CModelInfo::Get2dEffectStore().alloc();
+	effect = CModelInfo::Get2dEffectStore().Alloc();
 	mi->Add2dEffect(effect);
 	effect->pos = CVector(x, y, z);
 	effect->col = CRGBA(r, g, b, a);
@@ -1379,12 +1499,12 @@ CFileLoader::LoadScene(const char *filename)
 			continue;
 
 		if(section == NONE){
-			if(strncmp(line, "inst", 4) == 0) section = INST;
-			else if(strncmp(line, "zone", 4) == 0) section = ZONE;
-			else if(strncmp(line, "cull", 4) == 0) section = CULL;
-			else if(strncmp(line, "pick", 4) == 0) section = PICK;
-			else if(strncmp(line, "path", 4) == 0) section = PATH;
-		}else if(strncmp(line, "end", 3) == 0){
+			if(isLine4(line, 'i','n','s','t')) section = INST;
+			else if(isLine4(line, 'z','o','n','e')) section = ZONE;
+			else if(isLine4(line, 'c','u','l','l')) section = CULL;
+			else if(isLine4(line, 'p','i','c','k')) section = PICK;
+			else if(isLine4(line, 'p','a','t','h')) section = PATH;
+		}else if(isLine3(line, 'e','n','d')){
 			section = NONE;
 		}else switch(section){
 		case INST:
@@ -1404,6 +1524,7 @@ CFileLoader::LoadScene(const char *filename)
 			// unfinished in the game
 			if(pathIndex == -1){
 				LoadPathHeader(line, pathTypeStr);
+				strcmp(pathTypeStr, "ped");
 				// type not set
 				pathIndex = 0;
 			}else{
@@ -1541,8 +1662,8 @@ CFileLoader::LoadMapZones(const char *filename)
 			continue;
 
 		if(section == NONE){
-			if(strncmp(line, "zone", 4) == 0) section = ZONE;
-		}else if(strncmp(line, "end", 3) == 0){
+			if(isLine4(line, 'z','o','n','e')) section = ZONE;
+		}else if(isLine3(line, 'e','n','d')){
 			section = NONE;
 		}else switch(section){
 		case ZONE: {
@@ -1584,20 +1705,20 @@ CFileLoader::ReloadPaths(const char *filename)
 			continue;
 
 		if (section == NONE) {
-			if (strncmp(line, "path", 4) == 0) {
+			if (isLine4(line, 'p','a','t','h')) {
 				section = PATH;
 				ThePaths.AllocatePathFindInfoMem(4500);
 			}
-		} else if (strncmp(line, "end", 3) == 0) {
+		} else if (isLine3(line, 'e','n','d')) {
 			section = NONE;
 		} else {
 			switch (section) {
 				case PATH:
 					if (pathIndex == -1) {
 						id = LoadPathHeader(line, pathTypeStr);
-						if (strncmp(pathTypeStr, "ped", 4) == 0)
+						if (strcmp(pathTypeStr, "ped") == 0)
 							pathType = 1;
-						else if (strncmp(pathTypeStr, "car", 4) == 0)
+						else if (strcmp(pathTypeStr, "car") == 0)
 							pathType = 0;
 						pathIndex = 0;
 					} else {
@@ -1640,10 +1761,10 @@ CFileLoader::ReloadObjectTypes(const char *filename)
 			continue;
 
 		if (section == NONE) {
-			if (strncmp(line, "objs", 4) == 0) section = OBJS;
-			else if (strncmp(line, "tobj", 4) == 0) section = TOBJ;
-			else if (strncmp(line, "2dfx", 4) == 0) section = TWODFX;
-		} else if (strncmp(line, "end", 3) == 0) {
+			if (isLine4(line, 'o','b','j','s')) section = OBJS;
+			else if (isLine4(line, 't','o','b','j')) section = TOBJ;
+			else if (isLine4(line, '2','d','f','x')) section = TWODFX;
+		} else if (isLine3(line, 'e','n','d')) {
 			section = NONE;
 		} else {
 			switch (section) {
@@ -1715,7 +1836,11 @@ CFileLoader::ReLoadScene(const char *filename)
 		if (*line == '#')
 			continue;
 
-		if (strncmp(line, "EXIT", 9) == 0)	// BUG: 9?
+#ifdef FIX_BUGS
+		if (strncmp(line, "EXIT", 4) == 0)
+#else
+		if (strncmp(line, "EXIT", 9) == 0)
+#endif
 			break;
 
 		if (strncmp(line, "IDE", 3) == 0) {

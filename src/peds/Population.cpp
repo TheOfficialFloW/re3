@@ -22,6 +22,7 @@
 #include "DummyObject.h"
 #include "Script.h"
 #include "Shadows.h"
+#include "Bike.h"
 
 #define MIN_CREATION_DIST		40.0f // not for start of the game (look at the GeneratePedsAtStartOfGame)
 #define CREATION_RANGE			10.0f // added over the MIN_CREATION_DIST.
@@ -718,10 +719,10 @@ CPopulation::AddToPopulation(float minDist, float maxDist, float minDistOffScree
 			if (i != 0) {
 				// Gang member
 				newPed->SetLeader(gangLeader);
-#ifndef FIX_BUGS
+#if !defined(FIX_BUGS) && GTA_VERSION >= GTA3_PC_10
 				// seems to be a miami leftover (this code is not on PS2) but gang peds end up just being frozen
-				newPed->m_nPedState = PED_UNKNOWN;
-				gangLeader->m_nPedState = PED_UNKNOWN;
+				newPed->SetPedState(PED_UNKNOWN);
+				gangLeader->SetPedState(PED_UNKNOWN);
 				newPed->m_fRotationCur = CGeneral::GetRadianAngleBetweenPoints(
 					gangLeader->GetPosition().x, gangLeader->GetPosition().y,
 					newPed->GetPosition().x, newPed->GetPosition().y);
@@ -833,11 +834,11 @@ CPopulation::AddPedInCar(CVehicle* car)
 		newPed->SetCurrentWeapon(WEAPONTYPE_COLT45);
 		newPed->RemoveWeaponModel(CWeaponInfo::GetWeaponInfo(newPed->GetWeapon()->m_eWeaponType)->m_nModelId);
 	}
-	/*
+	
 	// Miami leftover
 	if (car->m_vehType == VEHICLE_TYPE_BIKE) {
-		newPed->m_pVehicleAnim = CAnimManager::BlendAnimation(newPed->GetClump(), ASSOCGRP_STD, *((CBike*)car + 308h), 100.0f);
-	} else */
+		newPed->m_pVehicleAnim = CAnimManager::BlendAnimation(newPed->GetClump(), ASSOCGRP_STD, ((CBike*)car)->m_bikeSitAnimation, 100.0f);
+	} else 
 
 	// FIX: Make peds comfortable while driving car/boat
 #ifdef FIX_BUGS

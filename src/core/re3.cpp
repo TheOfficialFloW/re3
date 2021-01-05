@@ -29,9 +29,10 @@
 #include "Script.h"
 #include "postfx.h"
 #include "custompipes.h"
+#include "MemoryHeap.h"
+#include "FileMgr.h"
 
 #ifdef DONT_TRUST_RECOGNIZED_JOYSTICKS
-#include "FileMgr.h"
 #include "ControllerConfig.h"
 #endif
 
@@ -78,6 +79,30 @@ void
 CustomFrontendOptionsPopulate(void)
 {
 	// Moved to an array in MenuScreensCustom.cpp, but APIs are still available. see frontendoption.h
+
+	// These work only if we have neo folder, so they're dynamically added
+#ifdef EXTENDED_PIPELINES
+	const char *vehPipelineNames[] = { "FED_MFX", "FED_NEO" };
+	const char *off_on[] = { "FEM_OFF", "FEM_ON" };
+	int fd = CFileMgr::OpenFile("neo/neo.txd","r");
+	if (fd) {
+#ifdef GRAPHICS_MENU_OPTIONS
+		FrontendOptionSetCursor(MENUPAGE_GRAPHICS_SETTINGS, -3, false);
+		FrontendOptionAddSelect("FED_VPL", vehPipelineNames, ARRAY_SIZE(vehPipelineNames), (int8*)&CustomPipes::VehiclePipeSwitch, false, nil, "VehiclePipeline");
+		FrontendOptionAddSelect("FED_PRM", off_on, 2, (int8*)&CustomPipes::RimlightEnable, false, nil, "NeoRimLight");
+		FrontendOptionAddSelect("FED_WLM", off_on, 2, (int8*)&CustomPipes::LightmapEnable, false, nil, "NeoLightMaps");
+		FrontendOptionAddSelect("FED_RGL", off_on, 2, (int8*)&CustomPipes::GlossEnable, false, nil, "NeoRoadGloss");
+#else
+		FrontendOptionSetCursor(MENUPAGE_DISPLAY_SETTINGS, -3, false);
+		FrontendOptionAddSelect("FED_VPL", vehPipelineNames, ARRAY_SIZE(vehPipelineNames), (int8*)&CustomPipes::VehiclePipeSwitch, false, nil, "VehiclePipeline");
+		FrontendOptionAddSelect("FED_PRM", off_on, 2, (int8*)&CustomPipes::RimlightEnable, false, nil, "NeoRimLight");
+		FrontendOptionAddSelect("FED_WLM", off_on, 2, (int8*)&CustomPipes::LightmapEnable, false, nil, "NeoLightMaps");
+		FrontendOptionAddSelect("FED_RGL", off_on, 2, (int8*)&CustomPipes::GlossEnable, false, nil, "NeoRoadGloss");
+#endif
+		CFileMgr::CloseFile(fd);
+	}
+#endif
+
 }
 #endif
 
@@ -194,7 +219,6 @@ void LoadINISettings()
 void SaveINISettings()
 {
 	bool changed = false;
-	char temp[4];
 
 #ifdef DONT_TRUST_RECOGNIZED_JOYSTICKS
 	if (strncmp(cfg.get("DetectJoystick", "JoystickName", "").c_str(), gSelectedJoystickName, strlen(gSelectedJoystickName)) != 0) {
@@ -383,6 +407,10 @@ SwitchToMission(void)
 }
 #endif
 
+#ifdef USE_CUSTOM_ALLOCATOR
+static void ParseHeap(void) { gMainHeap.ParseHeap(); }
+#endif
+
 static const char *carnames[] = {
 	"landstal", "idaho", "stinger", "linerun", "peren", "sentinel", "patriot", "firetruk", "trash", "stretch", "manana", "infernus", "blista", "pony",
 	"mule", "cheetah", "ambulan", "fbicar", "moonbeam", "esperant", "taxi", "kuruma", "bobcat", "mrwhoop", "bfinject", "corpse", "police", "enforcer",
@@ -405,7 +433,7 @@ void CTweakVars::Add(CTweakVar *var)
 		TweakVarsListSize = 0;
 	}
 	if(TweakVarsListSize > 63)
-		TweakVarsList = (CTweakVar**) realloc(TweakVarsList, (TweakVarsListSize + 1) * sizeof(var));
+		TweakVarsList = (CTweakVar**) realloc(TweakVarsList, (TweakVarsListSize + 1) * sizeof(*var));
 
 	TweakVarsList[TweakVarsListSize++] = var;
 //	TweakVarsList.push_back(var);
@@ -530,6 +558,30 @@ DebugMenuPopulate(void)
 		DebugMenuAddVarBool8("Render", "Frame limiter", &FrontEndMenuManager.m_PrefsFrameLimiter, nil);
 		DebugMenuAddVarBool8("Render", "VSynch", &FrontEndMenuManager.m_PrefsVsync, nil);
 		DebugMenuAddVar("Render", "Max FPS", &RsGlobal.maxFPS, nil, 1, 1, 1000, nil);
+#ifdef NEW_RENDERER
+		DebugMenuAddVarBool8("Render", "new renderer", &gbNewRenderer, nil);
+extern bool gbRenderRoads;
+extern bool gbRenderEverythingBarRoads;
+//extern bool gbRenderFadingInUnderwaterEntities;
+extern bool gbRenderFadingInEntities;
+extern bool gbRenderWater;
+extern bool gbRenderBoats;
+extern bool gbRenderVehicles;
+extern bool gbRenderWorld0;
+extern bool gbRenderWorld1;
+extern bool gbRenderWorld2;
+		DebugMenuAddVarBool8("Render", "gbRenderRoads", &gbRenderRoads, nil);
+		DebugMenuAddVarBool8("Render", "gbRenderEverythingBarRoads", &gbRenderEverythingBarRoads, nil);
+//		DebugMenuAddVarBool8("Render", "gbRenderFadingInUnderwaterEntities", &gbRenderFadingInUnderwaterEntities, nil);
+		DebugMenuAddVarBool8("Render", "gbRenderFadingInEntities", &gbRenderFadingInEntities, nil);
+		DebugMenuAddVarBool8("Render", "gbRenderWater", &gbRenderWater, nil);
+		DebugMenuAddVarBool8("Render", "gbRenderBoats", &gbRenderBoats, nil);
+		DebugMenuAddVarBool8("Render", "gbRenderVehicles", &gbRenderVehicles, nil);
+		DebugMenuAddVarBool8("Render", "gbRenderWorld0", &gbRenderWorld0, nil);
+		DebugMenuAddVarBool8("Render", "gbRenderWorld1", &gbRenderWorld1, nil);
+		DebugMenuAddVarBool8("Render", "gbRenderWorld2", &gbRenderWorld2, nil);
+#endif
+
 #ifdef EXTENDED_COLOURFILTER
 		static const char *filternames[] = { "None", "Simple", "Normal", "Mobile" };
 		e = DebugMenuAddVar("Render", "Colourfilter", &CPostFX::EffectSwitch, nil, 1, CPostFX::POSTFX_OFF, CPostFX::POSTFX_MOBILE, filternames);
@@ -565,8 +617,19 @@ DebugMenuPopulate(void)
 		DebugMenuAddVarBool8("Render", "Don't render Objects", &gbDontRenderObjects, nil);
 		DebugMenuAddVarBool8("Render", "Don't Render Water", &gbDontRenderWater, nil);
 
+#ifndef FINAL
+		DebugMenuAddVarBool8("Debug", "Print Memory Usage", &gbPrintMemoryUsage, nil);
+#ifdef USE_CUSTOM_ALLOCATOR
+		DebugMenuAddCmd("Debug", "Parse Heap", ParseHeap);
+#endif
+#endif
+		DebugMenuAddVarBool8("Debug", "Show cullzone debug stuff", &gbShowCullZoneDebugStuff, nil);
+		DebugMenuAddVarBool8("Debug", "Disable zone cull", &gbDisableZoneCull, nil);
+
 		DebugMenuAddVarBool8("Debug", "pad 1 -> pad 2", &CPad::m_bMapPadOneToPadTwo, nil);
+#ifdef GTA_SCENE_EDIT
 		DebugMenuAddVarBool8("Debug", "Edit on", &CSceneEdit::m_bEditOn, nil);
+#endif
 #ifdef MENU_MAP
 		DebugMenuAddCmd("Debug", "Teleport to map waypoint", TeleportToWaypoint);
 #endif

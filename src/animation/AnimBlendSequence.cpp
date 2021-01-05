@@ -1,6 +1,7 @@
 #include "common.h"
 
 #include "AnimBlendSequence.h"
+#include "MemoryHeap.h"
 
 CAnimBlendSequence::CAnimBlendSequence(void)
 {
@@ -15,9 +16,10 @@ CAnimBlendSequence::CAnimBlendSequence(void)
 
 CAnimBlendSequence::~CAnimBlendSequence(void)
 {
-	assert(keyFramesCompressed == nil);
 	if(keyFrames)
 		RwFree(keyFrames);
+	if(keyFramesCompressed)
+		RwFree(keyFramesCompressed);
 }
 
 void
@@ -70,6 +72,8 @@ CAnimBlendSequence::Uncompress(void)
 	if(numFrames == 0)
 		return;
 
+	PUSH_MEMID(MEMID_ANIMATION);
+
 	float rotScale = 1.0f/4096.0f;
 	float timeScale = 1.0f/60.0f;
 	float transScale = 1.0f/128.0f;
@@ -105,8 +109,12 @@ CAnimBlendSequence::Uncompress(void)
 		}
 		keyFrames = newKfs;
 	}
+	REGISTER_MEMPTR(&keyFrames);
+
 	RwFree(keyFramesCompressed);
 	keyFramesCompressed = nil;
+
+	POP_MEMID();
 }
 
 void
@@ -116,6 +124,8 @@ CAnimBlendSequence::CompressKeyframes(void)
 
 	if(numFrames == 0)
 		return;
+
+	PUSH_MEMID(MEMID_ANIMATION);
 
 	float rotScale = 4096.0f;
 	float timeScale = 60.0f;
@@ -152,6 +162,9 @@ CAnimBlendSequence::CompressKeyframes(void)
 		}
 		keyFramesCompressed = newKfs;
 	}
+	REGISTER_MEMPTR(&keyFramesCompressed);
+
+	POP_MEMID();
 }
 
 void
@@ -163,4 +176,25 @@ CAnimBlendSequence::RemoveUncompressedData(void)
 	RwFree(keyFrames);
 	keyFrames = nil;
 }
+
+#ifdef USE_CUSTOM_ALLOCATOR
+bool
+CAnimBlendSequence::MoveMemory(void)
+{
+	if(keyFrames){
+		void *newaddr = gMainHeap.MoveMemory(keyFrames);
+		if(newaddr != keyFrames){
+			keyFrames = newaddr;
+			return true;
+		}
+	}else if(keyFramesCompressed){
+		void *newaddr = gMainHeap.MoveMemory(keyFramesCompressed);
+		if(newaddr != keyFramesCompressed){
+			keyFramesCompressed = newaddr;
+			return true;
+		}
+	}
+	return false;
+}
+#endif
 

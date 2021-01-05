@@ -20,11 +20,16 @@ extern bool gbShowTimebars;
 #define gbShowTimebars false
 #endif
 
+#ifndef FINAL
+extern bool gbPrintMemoryUsage;
+#endif
+
 class CSprite2d;
 
 bool DoRWStuffStartOfFrame(int16 TopRed, int16 TopGreen, int16 TopBlue, int16 BottomRed, int16 BottomGreen, int16 BottomBlue, int16 Alpha);
 bool DoRWStuffStartOfFrame_Horizon(int16 TopRed, int16 TopGreen, int16 TopBlue, int16 BottomRed, int16 BottomGreen, int16 BottomBlue, int16 Alpha);
 void DoRWStuffEndOfFrame(void);
+void PreAllocateRwObjects(void);
 void InitialiseGame(void);
 void LoadingScreen(const char *str1, const char *str2, const char *splashscreen);
 void LoadingIslandScreen(const char *levelName);
@@ -42,4 +47,9 @@ void TheModelViewer(void);
 #ifdef LOAD_INI_SETTINGS
 void LoadINISettings();
 void SaveINISettings();
+#endif
+
+#ifdef NEW_RENDERER
+extern bool gbNewRenderer;
+bool FredIsInFirstPersonCam(void);
 #endif

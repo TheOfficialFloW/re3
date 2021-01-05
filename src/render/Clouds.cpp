@@ -44,23 +44,23 @@ void
 CClouds::Shutdown(void)
 {
 	RwTextureDestroy(gpCloudTex[0]);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 	gpCloudTex[0] = nil;
 #endif
 	RwTextureDestroy(gpCloudTex[1]);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 	gpCloudTex[1] = nil;
 #endif
 	RwTextureDestroy(gpCloudTex[2]);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 	gpCloudTex[2] = nil;
 #endif
 	RwTextureDestroy(gpCloudTex[3]);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 	gpCloudTex[3] = nil;
 #endif
 	RwTextureDestroy(gpCloudTex[4]);
-#ifdef GTA3_1_1_PATCH
+#if GTA_VERSION >= GTA3_PC_11
 	gpCloudTex[4] = nil;
 #endif
 }
@@ -133,7 +133,7 @@ CClouds::Render(void)
 	CSprite::InitSpriteBuffer();
 
 	int minute = CClock::GetHours()*60 + CClock::GetMinutes();
-	RwV3d campos = *(RwV3d*)&TheCamera.GetPosition();
+	RwV3d campos = TheCamera.GetPosition();
 
 	// Moon
 	int moonfadeout = Abs(minute - 180);	// fully visible at 3AM
