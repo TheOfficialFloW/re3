@@ -150,7 +150,7 @@ RwTexDictionaryGtaStreamRead2(RwStream *stream, RwTexDictionary *texDict)
 	return texDict;
 }
 
-#if defined(GTA_PC)
+#ifdef GTA_PC
 
 #ifdef LIBRW
 
