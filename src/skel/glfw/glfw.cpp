@@ -875,6 +875,7 @@ void _InputInitialiseJoys()
 	PSGLOBAL(joy1id) = -1;
 	PSGLOBAL(joy2id) = -1;
 
+#if !defined(PSP2)
 	// Load our gamepad mappings.
 #define SDL_GAMEPAD_DB_PATH "gamecontrollerdb.txt"
 	FILE *f = fopen(SDL_GAMEPAD_DB_PATH, "rb");
@@ -904,6 +905,7 @@ void _InputInitialiseJoys()
 	if (EnvControlConfig != nil) {
 		glfwUpdateGamepadMappings(EnvControlConfig);
 	}
+#endif
 
 	for (int i = 0; i <= GLFW_JOYSTICK_LAST; i++) {
 		if (glfwJoystickPresent(i) && !IsThisJoystickBlacklisted(i)) {
@@ -1718,6 +1720,7 @@ main(int argc, char *argv[])
 		{
 #if !defined(PSP2)
 			glfwPollEvents();
+#endif
 #ifndef MASTER
 			if (gbModelViewer) {
 				// This is TheModelViewerCore in LCS, but TheModelViewer on other state-machine III-VCs.
