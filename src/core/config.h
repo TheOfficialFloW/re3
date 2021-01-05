@@ -243,7 +243,7 @@ enum Config {
 #define ASPECT_RATIO_SCALE	// Not just makes everything scale with aspect ratio, also adds support for all aspect ratios
 #define DEFAULT_NATIVE_RESOLUTION	// Set default video mode to your native resolution (fixes Windows 10 launch)
 #define USE_TXD_CDIMAGE		// generate and load textures from txd.img
-//#define PS2_ALPHA_TEST		// emulate ps2 alpha test 
+#define PS2_ALPHA_TEST		// emulate ps2 alpha test 
 #define IMPROVED_VIDEOMODE	// save and load videomode parameters instead of a magic number
 //#define DISABLE_LOADING_SCREEN // disable the loading screen which vastly improves the loading time
 #define DISABLE_VSYNC_ON_TEXTURE_CONVERSION // make texture conversion work faster by disabling vsync
@@ -358,7 +358,7 @@ enum Config {
 
 #define SQUEEZE_PERFORMANCE
 #ifdef SQUEEZE_PERFORMANCE
-	#undef PS2_ALPHA_TEST
+//	#undef PS2_ALPHA_TEST
 	#undef NO_ISLAND_LOADING
 	#define PC_PARTICLE
 	#define VC_PED_PORTS // To not process collisions always. But should be tested if that's really beneficial
