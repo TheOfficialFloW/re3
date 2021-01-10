@@ -1,0 +1,38 @@
+#define u_fogStart (u_fogData.x)
+#define u_fogEnd (u_fogData.y)
+#define u_fogRange (u_fogData.z)
+#define u_fogDisable (u_fogData.w)
+
+void DoAlphaTest(float a, half2 u_alphaRef)
+{
+	if(a < u_alphaRef.x || a >= u_alphaRef.y)
+		discard;
+}
+
+float4 main(
+	half4 v_color : COLOR0,
+	half2 v_tex0 : TEXCOORD0,
+	fixed v_fog : FOG,
+	uniform half4 u_fogColor,
+	uniform half2 u_alphaRef,
+	uniform half4 u_blurcolor,
+	uniform sampler2D tex0
+) {
+	half a = u_blurcolor.a;
+	half4 dst = v_color*tex2D(tex0, half2(v_tex0.x, v_tex0.y));
+	dst.rgb = lerp(u_fogColor.rgb, dst.rgb, v_fog);
+	DoAlphaTest(dst.a, u_alphaRef);
+	
+	half4 prev = dst;
+	for (int i = 0; i < 5; i++){
+		half4 tmp = dst*(1.0-a) + prev*u_blurcolor*a;
+		prev = clamp(tmp, 0.0, 1.0);
+	}
+	half4 color;
+	color.rgb = prev.rgb;
+	color.a = 1.0f;
+	
+	return color;
+}
+
+

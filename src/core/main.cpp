@@ -1436,8 +1436,7 @@ Render2dStuffAfterFade(void)
 }
 
 #ifdef PSP2
-RwRaster *fxraster;
-RwRaster *subras;
+GLuint fxraster = 0xDEADBEEF, fxfb;
 #endif
 
 void
@@ -1547,20 +1546,15 @@ Idle(void *arg)
 		RwCameraSetFogDistance(Scene.camera, CTimeCycle::GetFogStart());
 #endif
 #if defined(PSP2) && defined(EXTENDED_COLOURFILTER)
-		RwRaster *camfb;
 		if(CPostFX::NeedBackBuffer()){
-			if(fxraster == nil){
-				int w, h;
-				for(w = 1; w < SCREEN_WIDTH; w *= 2);
-				for(h = 1; h < SCREEN_HEIGHT; h *= 2);
-				fxraster = RwRasterCreate(w, h, 0, rwRASTERTYPECAMERATEXTURE);
-				subras = RwRasterCreate(0, 0, 0, rwRASTERTYPECAMERATEXTURE);
-				rw::Rect r = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
-				subras->subRaster(fxraster, &r);
-			}
-			assert(fxraster);
-			camfb = RwCameraGetRaster(Scene.camera);
-			RwCameraSetRaster(Scene.camera, subras);
+			if(fxraster == 0xDEADBEEF){
+				glGenTextures(1, &fxraster);
+				glBindTexture(GL_TEXTURE_2D, fxraster);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 1024, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+				glGenFramebuffers(1, &fxfb);
+				glBindFramebuffer(GL_FRAMEBUFFER, fxfb);
+				glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, fxraster, 0);
+			} else glBindFramebuffer(GL_FRAMEBUFFER, fxfb);
 		}
 #endif
 		if(CWeather::LightningFlash && !CCullZones::CamNoRain()){
@@ -1593,10 +1587,9 @@ Idle(void *arg)
     
 #if defined(PSP2) && defined(EXTENDED_COLOURFILTER)
 		if (CPostFX::NeedBackBuffer()) {
-			RwCameraEndUpdate(Scene.camera);
-			glFinish();
-			RwCameraSetRaster(Scene.camera, camfb);
-			RwCameraBeginUpdate(Scene.camera);
+			vglStopRendering();
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			vglStartRendering();
 		}
 #endif
 

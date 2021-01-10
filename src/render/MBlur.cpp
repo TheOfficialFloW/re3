@@ -288,9 +288,6 @@ CMBlur::OverlayRender(RwCamera *cam, RwRaster *raster, RwRGBA color, int32 type,
 	}
 
 	if(!BlurOn){
-#ifdef PSP2
-		if(type == MOTION_BLUR_LIGHT_SCENE && !gPostFX) return;
-#endif
 		r = Min(r*0.6f, 255.0f);
 		g = Min(g*0.6f, 255.0f);
 		b = Min(b*0.6f, 255.0f);
