@@ -14,7 +14,7 @@
 #include "postfx.h"
 
 #ifdef PSP2
-extern RwRaster *fxraster;
+extern GLuint fxraster;
 #endif
 
 RwRaster *CPostFX::pFrontBuffer;
@@ -152,13 +152,15 @@ CPostFX::Open(RwCamera *cam)
 	contrast_PS = rw::d3d::createPixelShader(contrastPS_cso);
 #endif
 #ifdef RW_OPENGL
+#ifdef PSP2
+	#include "shaders/im2d_v.h"
+#endif
 	using namespace rw::gl3;
 	{
 #ifdef PSP2
-#include "shaders/im2d_vita.inc"
-#include "shaders/colourfilterIII_fs_vita.inc"
-	const char *vs[] = { header_vert_src, im2d_vert_src, nil };
-	const char *fs[] = { colourfilterIII_frag_src, nil };
+#include "shaders/colourfilterIII_f.h"
+	const char *vs[] = { (const char*)im2d_v, (const char*)&size_im2d_v, nil };
+	const char *fs[] = { (const char*)colourfilterIII_f, (const char*)&size_colourfilterIII_f, nil };
 	colourFilterIII = Shader::create(vs, fs, true);
 #else
 #include "shaders/im2d_gl.inc"
@@ -171,14 +173,19 @@ CPostFX::Open(RwCamera *cam)
 	}
 
 	{
-#ifndef PSP2
+#ifdef PSP2
+#include "shaders/contrast_f.h"
+	const char *vs[] = { (const char*)im2d_v, (const char*)&size_im2d_v, nil };
+	const char *fs[] = { (const char*)contrast_f, (const char*)&size_contrast_f, nil };
+	contrast = Shader::create(vs, fs, true);
+#else
 #include "shaders/im2d_gl.inc"
 #include "shaders/contrast_fs_gl.inc"
 	const char *vs[] = { shaderDecl, header_vert_src, im2d_vert_src, nil };
 	const char *fs[] = { shaderDecl, header_frag_src, contrast_frag_src, nil };
 	contrast = Shader::create(vs, fs);
-	assert(contrast);
 #endif
+	assert(contrast);
 	}
 
 #endif
@@ -277,11 +284,7 @@ float CPostFX::Intensity = 1.0f;
 void
 CPostFX::RenderOverlayShader(RwCamera *cam, int32 r, int32 g, int32 b, int32 a)
 {
-#ifdef PSP2
-	RwRenderStateSet(rwRENDERSTATETEXTURERASTER, fxraster);
-#else
 	RwRenderStateSet(rwRENDERSTATETEXTURERASTER, pBackBuffer);
-#endif
 	if(EffectSwitch == POSTFX_MOBILE){
 		float mult[3], add[3];
 		mult[0] = (r-64)/384.0f + 1.14f;
@@ -296,7 +299,7 @@ CPostFX::RenderOverlayShader(RwCamera *cam, int32 r, int32 g, int32 b, int32 a)
 
 		rw::d3d::im2dOverridePS = contrast_PS;
 #endif
-#if defined(RW_OPENGL) && !defined(PSP2)
+#if defined(RW_OPENGL)
 		rw::gl3::im2dOverrideShader = contrast;
 		contrast->use();
 		glUniform3fv(contrast->uniformLocations[u_contrastMult], 1, mult);
@@ -304,13 +307,11 @@ CPostFX::RenderOverlayShader(RwCamera *cam, int32 r, int32 g, int32 b, int32 a)
 #endif
 	}else{
 		float f = Intensity;
-#ifndef PSP2
 		float blurcolors[4];
 		blurcolors[0] = r/255.0f;
 		blurcolors[1] = g/255.0f;
 		blurcolors[2] = b/255.0f;
 		blurcolors[3] = a*f/255.0f;
-#endif
 #ifdef RW_D3D9
 		rw::d3d::d3ddevice->SetPixelShaderConstantF(10, blurcolors, 1);
 		rw::d3d::im2dOverridePS = colourfilterIII_PS;
@@ -318,16 +319,12 @@ CPostFX::RenderOverlayShader(RwCamera *cam, int32 r, int32 g, int32 b, int32 a)
 #ifdef RW_OPENGL
 		rw::gl3::im2dOverrideShader = colourFilterIII;
 		colourFilterIII->use();
-#ifdef PSP2
-		RwIm2DVertexSetIntRGBA(&Vertex[0], r, g, b, a*f);
-		RwIm2DVertexSetIntRGBA(&Vertex[1], r, g, b, a*f);
-		RwIm2DVertexSetIntRGBA(&Vertex[2], r, g, b, a*f);
-		RwIm2DVertexSetIntRGBA(&Vertex[3], r, g, b, a*f);
-#else
 		glUniform4fv(colourFilterIII->uniformLocations[u_blurcolor], 1, blurcolors);
 #endif
-#endif
 	}
+#ifdef PSP2
+	glBindTexture(GL_TEXTURE_2D, fxraster);
+#endif
 	RwIm2DRenderIndexedPrimitive(rwPRIMTYPETRILIST, Vertex, 4, Index, 6);
 #ifdef RW_D3D9
 	rw::d3d::im2dOverridePS = nil;

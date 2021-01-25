@@ -1,0 +1,35 @@
+#define u_fogStart (u_fogData.x)
+#define u_fogEnd (u_fogData.y)
+#define u_fogRange (u_fogData.z)
+#define u_fogDisable (u_fogData.w)
+
+#define MAX_LIGHTS 8
+
+#define surfAmbient (u_surfProps.x)
+#define surfSpecular (u_surfProps.y)
+#define surfDiffuse (u_surfProps.z)
+
+fixed DoFog(float w, half4 u_fogData)
+{
+	return clamp((w - u_fogEnd)*u_fogRange, u_fogDisable, 1.0);
+}
+
+void main(
+	float4 in_pos,
+	half4 in_color,
+	half2 in_tex0,
+	uniform half4 u_fogData,
+	uniform float4 u_xform,
+	half4 out v_color : COLOR0,
+	half2 out v_tex0 : TEXCOORD0,
+	fixed out v_fog : FOG,
+	float4 out gl_Position : POSITION
+) {
+	gl_Position = in_pos;
+	gl_Position.w = 1.0;
+	gl_Position.xy = gl_Position.xy * u_xform.xy + u_xform.zw;
+	v_fog = DoFog(gl_Position.z, u_fogData);
+	gl_Position.xyz *= gl_Position.w;
+	v_color = in_color;
+	v_tex0 = in_tex0;
+}

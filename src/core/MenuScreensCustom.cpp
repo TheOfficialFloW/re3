@@ -17,10 +17,6 @@
 #include "ModelInfo.h"
 #include "Pad.h"
 
-#ifdef PSP2
-extern bool gPostFX;
-#endif
-
 // Menu screens array is at the bottom of the file.
 
 #ifdef PC_MENU
@@ -67,9 +63,6 @@ extern bool gPostFX;
 	#define POSTFX_SELECTORS \
 		MENUACTION_CFO_SELECT, "FED_CLF", { new CCFOSelect((int8*)&CPostFX::EffectSwitch, "ColourFilter", filterNames, ARRAY_SIZE(filterNames), false) }, \
 		MENUACTION_CFO_SELECT, "FED_MBL", { new CCFOSelect((int8*)&CPostFX::MotionBlurOn, "MotionBlur", off_on, 2, false) },
-#elif defined(PSP2)
-	#define POSTFX_SELECTORS \
-		MENUACTION_CFO_SELECT, "FED_CLF", { new CCFOSelect((int8*)&gPostFX, "ColourFilter", off_on, 2, false) },
 #else
 	#define POSTFX_SELECTORS
 #endif	
@@ -89,9 +82,6 @@ void RestoreDefGraphics(int8 action) {
 
 	#ifdef PS2_ALPHA_TEST
 		gPS2alphaTest = false;
-	#endif
-	#ifdef PSP2
-		gPostFX = false;
 	#endif
 	#ifdef MULTISAMPLING
 		FrontEndMenuManager.m_nPrefsMSAALevel = FrontEndMenuManager.m_nDisplayMSAALevel = 0;
@@ -836,9 +826,6 @@ CMenuScreenCustom aScreens[MENUPAGES] = {
 		ISLAND_LOADING_SELECTOR
 		DUALPASS_SELECTOR
 #ifdef EXTENDED_COLOURFILTER
-		POSTFX_SELECTORS
-#elif defined(PSP2)
-		MENUACTION_TRAILS,		"FED_TRA", { nil, SAVESLOT_NONE, MENUPAGE_DISPLAY_SETTINGS },
 		POSTFX_SELECTORS
 #else
 		MENUACTION_TRAILS,		"FED_TRA", { nil, SAVESLOT_NONE, MENUPAGE_DISPLAY_SETTINGS },
