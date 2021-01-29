@@ -229,7 +229,7 @@ CPlayerPed::SetInitialState(void)
 	m_nAdrenalineTime = 0;
 	CTimer::SetTimeScale(1.0f);
 	m_pSeekTarget = nil;
-	m_vecSeekPos = { 0.0f, 0.0f, 0.0f };
+	m_vecSeekPos = CVector(0.0f, 0.0f, 0.0f);
 	m_fleeFromPosX = 0.0f;
 	m_fleeFromPosY = 0.0f;
 	m_fleeFrom = nil;
@@ -1136,7 +1136,7 @@ CPlayerPed::ProcessPlayerWeapon(CPad *padUsed)
 #ifdef FREE_CAM
 		else if ((CCamera::bFreeCam && weaponInfo->m_eWeaponFire == WEAPON_FIRE_MELEE) || (weaponInfo->IsFlagSet(WEAPONFLAG_CANAIM) && !CCamera::m_bUseMouse3rdPerson)) {
 #else
-		else if (weaponInfo->m_bCanAim && !CCamera::m_bUseMouse3rdPerson) {
+		else if (weaponInfo->IsFlagSet(WEAPONFLAG_CANAIM) && !CCamera::m_bUseMouse3rdPerson) {
 #endif
 			if (padUsed->TargetJustDown())
 				FindWeaponLockOnTarget();

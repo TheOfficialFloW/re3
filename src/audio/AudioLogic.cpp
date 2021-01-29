@@ -1,4 +1,4 @@
-﻿#include "common.h"
+#include "common.h"
 
 #include "AudioManager.h"
 #include "audio_enums.h"
@@ -38,7 +38,7 @@
 #include "ZoneCull.h"
 #include "sampman.h"
 
-const int channels = ARRAY_SIZE(cAudioManager::m_asActiveSamples);
+const int channels = ARRAY_SIZE(AudioManager.m_asActiveSamples);
 const int policeChannel = channels + 1;
 const int allChannels = channels + 2;
 
@@ -5788,7 +5788,7 @@ cAudioManager::GetCasualMaleOldTalkSfx(int16 sound)
 uint32
 cAudioManager::GetSpecialCharacterTalkSfx(int32 modelIndex, int32 sound)
 {
-	char *modelName = CModelInfo::GetModelInfo(modelIndex)->GetName();
+	char *modelName = CModelInfo::GetModelInfo(modelIndex)->GetModelName();
 	if (!CGeneral::faststricmp(modelName, "eight") || !CGeneral::faststricmp(modelName, "eight2")) {
 		return GetEightTalkSfx(sound);
 	}

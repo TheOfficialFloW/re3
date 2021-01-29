@@ -6188,7 +6188,7 @@ Those Colombians'll be here any minute!
 Goddam they're here!! LOCK'N'LOAD!!
 
 [LOVE2_7]
-~g~ Now dump the car!
+~g~Now dump the car!
 
 [LOVE2_8]
 ~g~Now get out of Newport!
@@ -8060,6 +8060,9 @@ PS2
 
 [FEM_XBX]
 XBOX
+
+[FEM_AUT]
+AUTO
 
 [FEC_IVP]
 INVERT PAD VERTICALLY

@@ -4,7 +4,6 @@
 #include "CopPed.h"
 #include "CutsceneMgr.h"
 #include "DMAudio.h"
-#include "Entity.h"
 #include "EventList.h"
 #include "Explosion.h"
 #include "Fire.h"
@@ -12,10 +11,7 @@
 #include "Glass.h"
 #include "Messages.h"
 #include "ModelIndices.h"
-#include "Object.h"
 #include "ParticleObject.h"
-#include "Ped.h"
-#include "PlayerPed.h"
 #include "Population.h"
 #include "ProjectileInfo.h"
 #include "Record.h"
@@ -24,7 +20,6 @@
 #include "RpAnimBlend.h"
 #include "Shadows.h"
 #include "TempColModels.h"
-#include "Vehicle.h"
 #include "WaterLevel.h"
 #include "World.h"
 
@@ -365,7 +360,7 @@ CWorld::ProcessLineOfSightSectorList(CPtrList &list, const CColLine &line, CColP
 			} else if(e->bUsesCollision)
 				colmodel = CModelInfo::GetModelInfo(e->GetModelIndex())->GetColModel();
 
-			if(colmodel && CCollision::ProcessLineOfSight(line, e->GetMatrix(), *colmodel, point, dist,
+			if(colmodel && CCollision::ProcessLineOfSight(line, e->GetMatrix(), *colmodel, point, mindist,
 			                                              ignoreSeeThrough))
 				entity = e;
 		}
@@ -450,7 +445,7 @@ CWorld::ProcessVerticalLineSectorList(CPtrList &list, const CColLine &line, CCol
 			e->m_scanCode = GetCurrentScanCode();
 
 			colmodel = CModelInfo::GetModelInfo(e->GetModelIndex())->GetColModel();
-			if(CCollision::ProcessVerticalLine(line, e->GetMatrix(), *colmodel, point, dist,
+			if(CCollision::ProcessVerticalLine(line, e->GetMatrix(), *colmodel, point, mindist,
 			                                   ignoreSeeThrough, poly))
 				entity = e;
 		}
