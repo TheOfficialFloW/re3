@@ -1618,9 +1618,7 @@ Idle(void *arg)
     
 #if defined(PSP2) && defined(EXTENDED_COLOURFILTER)
 		if (CPostFX::NeedBackBuffer()) {
-			vglStopRendering();
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-			vglStartRendering();
 		}
 #endif
 
