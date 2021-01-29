@@ -394,7 +394,7 @@ enum Config {
 #endif
 
 // Streaming
-#if !defined(_WIN32) && !defined(__SWITCH__)
+#if !defined(_WIN32) && !defined(__SWITCH__) && !defined(PSP2)
 	//#define ONE_THREAD_PER_CHANNEL // Don't use if you're not on SSD/Flash - also not utilized too much right now(see commented LoadAllRequestedModels in Streaming.cpp)
 	#define FLUSHABLE_STREAMING // Make it possible to interrupt reading when processing file isn't needed anymore.
 #endif

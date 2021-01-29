@@ -967,7 +967,14 @@ RwBool       RtCharsetDestroy(RtCharset * charSet) { charSet->destroy(); return 
 
 #include <rpanisot.h>
 
+#ifdef PSP2
+RwInt8      RpAnisotGetMaxSupportedMaxAnisotropy(void) { return 0; }
+RwTexture    *RpAnisotTextureSetMaxAnisotropy(RwTexture *tex, RwInt8 val) { return nullptr; }
+RwInt8       RpAnisotTextureGetMaxAnisotropy(RwTexture *tex) { return 0; }
+RwBool       RpAnisotPluginAttach(void) { return false; }
+#else
 RwInt8      RpAnisotGetMaxSupportedMaxAnisotropy(void) { return rw::getMaxSupportedMaxAnisotropy(); }
 RwTexture    *RpAnisotTextureSetMaxAnisotropy(RwTexture *tex, RwInt8 val) { tex->setMaxAnisotropy(val); return tex; }
 RwInt8       RpAnisotTextureGetMaxAnisotropy(RwTexture *tex) { return tex->getMaxAnisotropy(); }
 RwBool       RpAnisotPluginAttach(void) { rw::registerAnisotropyPlugin(); return true; }
+#endif

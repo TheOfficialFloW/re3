@@ -22,7 +22,7 @@
 
 void *memcpy(void *dest, const void *src, size_t n)
 {
-	return memcpy_neon(dest, src, n);
+	return sceClibMemcpy(dest, src, n);
 }
 
 static unsigned char gButtons[GLFW_GAMEPAD_BUTTON_LAST+1];
@@ -91,8 +91,8 @@ int glfwGetGamepadState(int jid, GLFWgamepadstate* state)
 {
 	unsigned char *buttons = glfwGetJoystickButtons(jid, NULL);
 	float *axes = glfwGetJoystickAxes(jid, NULL);
-	memcpy_neon(state->buttons, buttons, sizeof(state->buttons));
-	memcpy_neon(state->axes, axes, sizeof(state->axes));
+	sceClibMemcpy(state->buttons, buttons, sizeof(state->buttons));
+	sceClibMemcpy(state->axes, axes, sizeof(state->axes));
 	return 1;
 }
 

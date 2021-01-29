@@ -24,6 +24,10 @@
 #ifndef LINB_INI_PARSER_HPP
 #define LINB_INI_PARSER_HPP
 
+#ifdef PSP2
+#include "../skel/crossplatform.h"
+#endif
+
 /*
  *  STL-like INI Container
  */

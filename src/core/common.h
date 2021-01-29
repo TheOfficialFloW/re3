@@ -534,7 +534,7 @@ inline const T ReadSaveBuf(uint8 *&buf)
 	T &value = *(T*)buf;
 #else
 	T value;
-	memcpy_neon(&value, buf, sizeof(T));
+	sceClibMemcpy(&value, buf, sizeof(T));
 #endif
 	SkipSaveBuf(buf, sizeof(T));
 	return value;
@@ -547,7 +547,7 @@ inline T *WriteSaveBuf(uint8 *&buf, const T &value)
 #if !defined(PSP2)
 	*p = value;
 #else
-	memcpy_neon(p, &value, sizeof(T));
+	sceClibMemcpy(p, &value, sizeof(T));
 #endif
 	SkipSaveBuf(buf, sizeof(T));
 	return p;
