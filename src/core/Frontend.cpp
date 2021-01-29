@@ -1,10 +1,6 @@
-#if defined RW_D3D9 || defined RWLIBS
-#define DIRECTINPUT_VERSION 0x0800
-#include <dinput.h>
-#endif
-
 #define FORCE_PC_SCALING
 #define WITHWINDOWS
+#define WITHDINPUT
 #include "common.h"
 #ifndef PS2_MENU
 #include "crossplatform.h"
@@ -143,14 +139,6 @@ int8 CMenuManager::m_nDisplayMSAALevel = 0;
 
 #ifdef NO_ISLAND_LOADING
 int8 CMenuManager::m_PrefsIslandLoading = ISLAND_LOADING_LOW;
-#endif
-
-#ifdef USE_PRECISE_MEASUREMENT_CONVERTION
-#define MILES_IN_METER 0.000621371192f
-#define FEET_IN_METER 3.28084f
-#else
-#define MILES_IN_METER (1 / 1670.f)
-#define FEET_IN_METER 3.33f
 #endif
 
 int32 CMenuManager::OS_Language = LANG_ENGLISH;
@@ -874,7 +862,11 @@ CMenuManager::CheckCodesForControls(int typeOfControl)
 		m_bWaitingForNewKeyBind = false;
 		m_KeyPressedCode = -1;
 		m_bStartWaitingForKeyBind = false;
+#ifdef LOAD_INI_SETTINGS
+		SaveINIControllerSettings();
+#else
 		SaveSettings();
+#endif
 	}
 
 	if (escPressed) {
@@ -882,7 +874,11 @@ CMenuManager::CheckCodesForControls(int typeOfControl)
 		m_bWaitingForNewKeyBind = false;
 		m_KeyPressedCode = -1;
 		m_bStartWaitingForKeyBind = false;
+#ifdef LOAD_INI_SETTINGS
+		SaveINIControllerSettings();
+#else
 		SaveSettings();
+#endif
 	}
 }
 
@@ -1285,7 +1281,9 @@ CMenuManager::Draw()
 	float smallestSliderBar = lineHeight * 0.1f;
 	bool foundTheHoveringItem = false;
 	wchar unicodeTemp[64];
+#ifdef ASPECT_RATIO_SCALE
 	char asciiTemp[32];
+#endif
 
 #ifdef MENU_MAP
 	if (m_nCurrScreen == MENUPAGE_MAP) {
@@ -1467,18 +1465,34 @@ CMenuManager::Draw()
 #else
 				switch (m_PrefsUseWideScreen) {
 				case AR_AUTO:
-					sprintf(asciiTemp, "AUTO");
+					rightText = TheText.Get("FEM_AUT");
 					break;
 				case AR_4_3:
 					sprintf(asciiTemp, "4:3");
+					AsciiToUnicode(asciiTemp, unicodeTemp);
+					rightText = unicodeTemp;
+					break;
+				case AR_5_4:
+					sprintf(asciiTemp, "5:4");
+					AsciiToUnicode(asciiTemp, unicodeTemp);
+					rightText = unicodeTemp;
+					break;
+				case AR_16_10:
+					sprintf(asciiTemp, "16:10");
+					AsciiToUnicode(asciiTemp, unicodeTemp);
+					rightText = unicodeTemp;
 					break;
 				case AR_16_9:
 					sprintf(asciiTemp, "16:9");
+					AsciiToUnicode(asciiTemp, unicodeTemp);
+					rightText = unicodeTemp;
+					break;
+				case AR_21_9:
+					sprintf(asciiTemp, "21:9");
+					AsciiToUnicode(asciiTemp, unicodeTemp);
+					rightText = unicodeTemp;
 					break;
 				}
-
-				AsciiToUnicode(asciiTemp, unicodeTemp);
-				rightText = unicodeTemp;
 #endif
 				break;
 			case MENUACTION_RADIO:
@@ -3574,13 +3588,21 @@ CMenuManager::LoadAllTextures()
 	DMAudio.ChangeMusicMode(MUSICMODE_FRONTEND);
 	DMAudio.PlayFrontEndSound(SOUND_FRONTEND_MENU_STARTING, 0);
 	m_nCurrOption = 0;
+
+#ifdef FIX_BUGS
+	static bool firstTime = true;
+	if (firstTime) {
+		DMAudio.SetRadioInCar(m_PrefsRadioStation);
+		firstTime = false;
+	} else
+#endif
 	m_PrefsRadioStation = DMAudio.GetRadioInCar();
 
 	if (DMAudio.IsMP3RadioChannelAvailable()) {
 		if (m_PrefsRadioStation > USERTRACK)
-			m_PrefsRadioStation = CGeneral::GetRandomNumber() % 10;
+			m_PrefsRadioStation = CGeneral::GetRandomNumber() % (USERTRACK + 1);
 	} else if (m_PrefsRadioStation > CHATTERBOX)
-		m_PrefsRadioStation = CGeneral::GetRandomNumber() % 9;
+		m_PrefsRadioStation = CGeneral::GetRandomNumber() % (CHATTERBOX + 1);
 	
 	CFileMgr::SetDir("");
 	//CFileMgr::SetDir("");
@@ -3717,6 +3739,16 @@ CMenuManager::LoadSettings()
 	CFileMgr::CloseFile(fileHandle);
 	CFileMgr::SetDir("");
 
+#ifdef LOAD_INI_SETTINGS
+	if (LoadINISettings()) {
+		LoadINIControllerSettings();
+	} else {
+		// no re3.ini, create it
+		SaveINISettings();
+		SaveINIControllerSettings();
+	}
+#endif
+
 	m_PrefsVsync = m_PrefsVsyncDisp;
 	CRenderer::ms_lodDistScale = m_PrefsLOD;
 
@@ -3755,15 +3787,12 @@ CMenuManager::LoadSettings()
 		strcpy(m_PrefsSkinFile, DEFAULT_SKIN_NAME);
 		strcpy(m_aSkinName, DEFAULT_SKIN_NAME);
 	}
-	
-#ifdef LOAD_INI_SETTINGS
-	LoadINISettings(); // needs frontend options to be loaded
-#endif
 }
 
 void
 CMenuManager::SaveSettings()
 {
+#ifndef LOAD_INI_SETTINGS
 	static char RubbishString[48] = "stuffmorestuffevenmorestuff                 etc";
 
 	CFileMgr::SetDirMyDocuments();
@@ -3813,7 +3842,7 @@ CMenuManager::SaveSettings()
 	CFileMgr::CloseFile(fileHandle);
 	CFileMgr::SetDir("");
 
-#ifdef LOAD_INI_SETTINGS
+#else
 	SaveINISettings();
 #endif
 }
@@ -4123,19 +4152,19 @@ CMenuManager::Process(void)
 				MouseButtonJustClicked = false;
 
 				if (CPad::GetPad(0)->GetLeftMouseJustDown())
-					MouseButtonJustClicked = 1;
+					MouseButtonJustClicked = rsMOUSELEFTBUTTON;
 				else if (CPad::GetPad(0)->GetRightMouseJustUp())
-					MouseButtonJustClicked = 3;
+					MouseButtonJustClicked = rsMOUSERIGHTBUTTON;
 				else if (CPad::GetPad(0)->GetMiddleMouseJustUp())
-					MouseButtonJustClicked = 2;
+					MouseButtonJustClicked = rsMOUSMIDDLEBUTTON;
 				else if (CPad::GetPad(0)->GetMouseWheelUpJustUp())
-					MouseButtonJustClicked = 4;
+					MouseButtonJustClicked = rsMOUSEWHEELUPBUTTON;
 				else if (CPad::GetPad(0)->GetMouseWheelDownJustUp())
-					MouseButtonJustClicked = 5;
+					MouseButtonJustClicked = rsMOUSEWHEELDOWNBUTTON;
 				else if (CPad::GetPad(0)->GetMouseX1JustUp())
-					MouseButtonJustClicked = 6;
+					MouseButtonJustClicked = rsMOUSEX1BUTTON;
 				else if (CPad::GetPad(0)->GetMouseX2JustUp())
-					MouseButtonJustClicked = 7;
+					MouseButtonJustClicked = rsMOUSEX2BUTTON;
 
 				JoyButtonJustClicked = ControlsManager.GetJoyButtonJustDown();
 
@@ -5053,6 +5082,9 @@ CMenuManager::ProcessButtonPresses(void)
 						CVehicle::m_bDisableMouseSteering = true;
 						TheCamera.m_bHeadBob = false;
 						SaveSettings();
+#ifdef LOAD_INI_SETTINGS
+						SaveINIControllerSettings();
+#endif
 					}
 					SetHelperText(2);
 					break;
@@ -5104,7 +5136,8 @@ CMenuManager::ProcessButtonPresses(void)
 
 						*option.m_CFO->value = option.m_CFOSelect->lastSavedValue = option.m_CFOSelect->displayedValue;
 
-						if (option.m_CFOSelect->save)
+						// Now everything is saved in .ini, and LOAD_INI_SETTINGS is fundamental for CFO
+						// if (option.m_CFOSelect->save)
 							SaveSettings();
 
 						if (option.m_CFOSelect->displayedValue != oldValue && option.m_CFOSelect->changeFunc)
@@ -5262,12 +5295,12 @@ CMenuManager::ProcessButtonPresses(void)
 			case MENUACTION_WIDESCREEN:
 				if (changeValueBy > 0) {
 					m_PrefsUseWideScreen++;
-					if (m_PrefsUseWideScreen > 2)
+					if (m_PrefsUseWideScreen > AR_MAX-1)
 						m_PrefsUseWideScreen = 0;
 				} else {
 					m_PrefsUseWideScreen--;
 					if (m_PrefsUseWideScreen < 0)
-						m_PrefsUseWideScreen = 2;
+						m_PrefsUseWideScreen = AR_MAX-1;
 				}
 				DMAudio.PlayFrontEndSound(SOUND_FRONTEND_MENU_SETTING_CHANGE, 0);
 				SaveSettings();
@@ -5338,7 +5371,8 @@ CMenuManager::ProcessButtonPresses(void)
 
 						*option.m_CFO->value = option.m_CFOSelect->lastSavedValue = option.m_CFOSelect->displayedValue;
 
-						if (option.m_CFOSelect->save)
+						// Now everything is saved in .ini, and LOAD_INI_SETTINGS is fundamental for CFO
+						// if (option.m_CFOSelect->save)
 							SaveSettings();
 
 						if (option.m_CFOSelect->displayedValue != oldValue && option.m_CFOSelect->changeFunc)
@@ -5580,6 +5614,9 @@ CMenuManager::SwitchMenuOnAndOff()
 #endif
 			ShutdownJustMenu();
 			SaveSettings();
+#ifdef LOAD_INI_SETTINGS
+			SaveINIControllerSettings();
+#endif
 			m_bStartUpFrontEndRequested = false;
 			pControlEdit = nil;
 			m_bShutDownFrontEndRequested = false;

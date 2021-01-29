@@ -305,7 +305,7 @@ void CReplay::RecordThisFrame(void)
 #endif
 	tGeneralPacket* general = (tGeneralPacket*)&Record.m_pBase[Record.m_nOffset];
 	general->type = REPLAYPACKET_GENERAL;
-	general->camera_pos.CopyOnlyMatrix(&TheCamera.GetMatrix());
+	general->camera_pos.CopyOnlyMatrix(TheCamera.GetMatrix());
 	general->player_pos = FindPlayerCoors();
 	general->in_rcvehicle = CWorld::Players[CWorld::PlayerInFocus].m_pRemoteVehicle ? true : false;
 	Record.m_nOffset += sizeof(*general);
@@ -1457,7 +1457,7 @@ void CReplay::SaveReplayToHD(void)
 	CFileMgr::SetDir("");
 }
 
-void PlayReplayFromHD(void)
+void CReplay::PlayReplayFromHD(void)
 {
 	CFileMgr::SetDirMyDocuments();
 	int fr = CFileMgr::OpenFile("replay.rep", "rb");
@@ -1476,17 +1476,17 @@ void PlayReplayFromHD(void)
 		return;
 	}
 	int slot;
-	for (slot = 0; CFileMgr::Read(fr, (char*)CReplay::Buffers[slot], sizeof(CReplay::Buffers[slot])); slot++)
-		CReplay::BufferStatus[slot] = CReplay::REPLAYBUFFER_PLAYBACK;
-	CReplay::BufferStatus[slot - 1] = CReplay::REPLAYBUFFER_RECORD;
-	while (slot < CReplay::NUM_REPLAYBUFFERS)
-		CReplay::BufferStatus[slot++] = CReplay::REPLAYBUFFER_UNUSED;
+	for (slot = 0; CFileMgr::Read(fr, (char*)Buffers[slot], sizeof(Buffers[slot])); slot++)
+		BufferStatus[slot] = REPLAYBUFFER_PLAYBACK;
+	BufferStatus[slot - 1] = REPLAYBUFFER_RECORD;
+	while (slot < NUM_REPLAYBUFFERS)
+		BufferStatus[slot++] = REPLAYBUFFER_UNUSED;
 	CFileMgr::CloseFile(fr);
 	CFileMgr::SetDir("");
-	CReplay::TriggerPlayback(CReplay::REPLAYCAMMODE_ASSTORED, 0.0f, 0.0f, 0.0f, false);
-	CReplay::bPlayingBackFromFile = true;
-	CReplay::bAllowLookAroundCam = true;
-	CReplay::StreamAllNecessaryCarsAndPeds();
+	TriggerPlayback(REPLAYCAMMODE_ASSTORED, 0.0f, 0.0f, 0.0f, false);
+	bPlayingBackFromFile = true;
+	bAllowLookAroundCam = true;
+	StreamAllNecessaryCarsAndPeds();
 }
 
 void CReplay::StreamAllNecessaryCarsAndPeds(void)

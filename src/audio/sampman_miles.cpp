@@ -1,8 +1,7 @@
 #include "common.h"
 
 #ifdef AUDIO_MSS
-#include <windows.h>
-#include <shobjidl.h>
+#include <shlobj.h>
 #include <shlguid.h>
 
 #include <time.h>

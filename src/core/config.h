@@ -1,5 +1,8 @@
 #pragma once
 
+// disables (most) stuff that wasn't in original gta3.exe - check section at the bottom of this file
+//#define VANILLA_DEFINES
+
 enum Config {
 	NUMPLAYERS = 1,	// 4 on PS2
 
@@ -8,8 +11,11 @@ enum Config {
 	MAX_CDCHANNELS = 5,
 
 	MODELINFOSIZE = 5500,	// 3150 on PS2
-//	TXDSTORESIZE = 850,
+#if defined __MWERKS__ || defined VANILLA_DEFINES
+	TXDSTORESIZE = 850,
+#else
 	TXDSTORESIZE = 1024,	// for Xbox map
+#endif
 	EXTRADIRSIZE = 128,
 	CUTSCENEDIRSIZE = 512,
 
@@ -226,10 +232,20 @@ enum Config {
 #	define TIMEBARS		// print debug timers
 #endif
 
-#define FIX_BUGS		// fixes bugs that we've came across during reversing
+#define FIX_BUGS		// fixes bugs that we've came across during reversing. You can undefine this only on release builds.
 #define MORE_LANGUAGES		// Add more translations to the game
 #define COMPATIBLE_SAVES // this allows changing structs while keeping saves compatible
 #define LOAD_INI_SETTINGS // as the name suggests. fundamental for CUSTOM_FRONTEND_OPTIONS
+
+#if defined(__LP64__) || defined(_WIN64)
+#define FIX_BUGS_64 // Must have fixes to be able to run 64 bit build
+#endif
+
+#define ASCII_STRCMP // use faster ascii str comparisons
+
+#if !defined _WIN32 || defined __MWERKS__ || defined __MINGW32__ || defined VANILLA_DEFINES
+#undef ASCII_STRCMP
+#endif
 
 // Just debug menu entries
 #ifdef DEBUGMENU
@@ -241,12 +257,14 @@ enum Config {
 #define HARDCODED_MODEL_FLAGS	// sets the flags enabled above from hardcoded model names.
 				// NB: keep this enabled unless your map IDEs have these flags baked in
 #define ASPECT_RATIO_SCALE	// Not just makes everything scale with aspect ratio, also adds support for all aspect ratios
+#define PROPER_SCALING		// use original DEFAULT_SCREEN_WIDTH/DEFAULT_SCREEN_HEIGHT from PS2 instead of PC(R* changed HEIGHT here to make radar look better, but broke other hud elements aspect ratio).
 #define DEFAULT_NATIVE_RESOLUTION	// Set default video mode to your native resolution (fixes Windows 10 launch)
 #define USE_TXD_CDIMAGE		// generate and load textures from txd.img
 #define PS2_ALPHA_TEST		// emulate ps2 alpha test 
 #define IMPROVED_VIDEOMODE	// save and load videomode parameters instead of a magic number
 //#define DISABLE_LOADING_SCREEN // disable the loading screen which vastly improves the loading time
 #define DISABLE_VSYNC_ON_TEXTURE_CONVERSION // make texture conversion work faster by disabling vsync
+#define ANISOTROPIC_FILTERING	// set all textures to max anisotropic filtering
 //#define USE_TEXTURE_POOL
 #ifdef LIBRW
 #define EXTENDED_COLOURFILTER		// more options for colour filter (replaces mblur)
@@ -254,6 +272,8 @@ enum Config {
 //#define SCREEN_DROPLETS			// neo water droplets
 //#define NEW_RENDERER		// leeds-like world rendering, needs librw
 #endif
+
+#define FIX_SPRITES	// fix sprites aspect ratio(moon, coronas, particle etc)
 
 #ifndef EXTENDED_COLOURFILTER
 #undef SCREEN_DROPLETS		// we need the backbuffer for this effect
@@ -283,6 +303,7 @@ enum Config {
 #define HUD_ENHANCEMENTS	// Adjusts some aspects to make the HUD look/behave a little bit better.
 // #define BETA_SLIDING_TEXT
 #define TRIANGULAR_BLIPS	// height indicating triangular radar blips, as in VC
+#define FIX_RADAR			// use radar size from early version before R* broke it
 // #define XBOX_SUBTITLES	// the infamous outlines
 #define RADIO_OFF_TEXT
 #define PC_MENU
@@ -323,6 +344,11 @@ enum Config {
 #define USE_BASIC_SCRIPT_DEBUG_OUTPUT
 #endif
 
+#ifdef MASTER
+#undef USE_ADVANCED_SCRIPT_DEBUG_OUTPUT
+#undef USE_BASIC_SCRIPT_DEBUG_OUTPUT
+#endif
+
 // Replay
 //#define DONT_FIX_REPLAY_BUGS // keeps various bugs in CReplay, some of which are fairly cool!
 //#define USE_BETA_REPLAY_MODE // adds another replay mode, a few seconds slomo (caution: buggy!)
@@ -351,10 +377,28 @@ enum Config {
 // Audio
 #define RADIO_SCROLL_TO_PREV_STATION
 #define AUDIO_CACHE
-//#define PS2_AUDIO   // changes audio paths for cutscenes and radio to PS2 paths, needs vbdec to support VB with MSS
+//#define PS2_AUDIO_PATHS // changes audio paths for cutscenes and radio to PS2 paths (needs vbdec on MSS builds)
+//#define AUDIO_OAL_USE_SNDFILE // use libsndfile to decode WAVs instead of our internal decoder
+#define AUDIO_OAL_USE_MPG123 // use mpg123 to support mp3 files
 
-// IMG
-#define BIG_IMG // allows to read larger img files
+#ifdef AUDIO_OPUS
+#define AUDIO_OAL_USE_OPUS // enable support of opus files
+#define OPUS_AUDIO_PATHS // changes audio paths to opus paths (doesn't work if AUDIO_OAL_USE_OPUS isn't enabled)
+#define OPUS_SFX  // enable if your sfx.raw is encoded with opus (doesn't work if AUDIO_OAL_USE_OPUS isn't enabled)
+
+#ifndef AUDIO_OAL_USE_OPUS
+#undef OPUS_AUDIO_PATHS
+#undef OPUS_SFX
+#endif
+
+#endif
+
+// Streaming
+#if !defined(_WIN32) && !defined(__SWITCH__)
+	//#define ONE_THREAD_PER_CHANNEL // Don't use if you're not on SSD/Flash - also not utilized too much right now(see commented LoadAllRequestedModels in Streaming.cpp)
+	#define FLUSHABLE_STREAMING // Make it possible to interrupt reading when processing file isn't needed anymore.
+#endif
+#define BIG_IMG // Not complete - allows to read larger img files
 
 #define SQUEEZE_PERFORMANCE
 #ifdef SQUEEZE_PERFORMANCE
@@ -365,6 +409,90 @@ enum Config {
 	#define VC_RAIN_NERF // Reduces number of rain particles
 #endif
 
-#ifdef LIBRW
-// these are not supported with librw yet
+// -------
+
+#if defined __MWERKS__ || defined VANILLA_DEFINES
+#define FINAL
+#undef CHATTYSPLASH
+#undef TIMEBARS
+//#define USE_MY_DOCUMENTS
+
+#define MASTER
+#undef VALIDATE_SAVE_SIZE
+#undef NO_MOVIES
+#undef DEBUGMENU
+
+//#undef NASTY_GAME
+//#undef NO_CDCHECK
+
+#undef DRAW_GAME_VERSION_TEXT
+#undef DRAW_MENU_VERSION_TEXT
+
+#undef GTA_PS2_STUFF
+#undef USE_PS2_RAND
+#undef RANDOMSPLASH
+#undef PS2_MATFX
+
+#undef FIX_BUGS
+#define THIS_IS_STUPID
+#undef MORE_LANGUAGES
+#undef COMPATIBLE_SAVES
+#undef LOAD_INI_SETTINGS
+
+#undef ASPECT_RATIO_SCALE
+#undef PROPER_SCALING
+//#undef DEFAULT_NATIVE_RESOLUTION
+#undef PS2_ALPHA_TEST
+#undef IMPROVED_VIDEOMODE
+#undef DISABLE_LOADING_SCREEN
+#undef DISABLE_VSYNC_ON_TEXTURE_CONVERSION
+#undef ANISOTROPIC_FILTERING
+//#define USE_TEXTURE_POOL // not possible because R* used custom RW33
+
+#undef FIX_SPRITES
+
+#define PC_PARTICLE
+
+#undef XINPUT
+#undef DETECT_PAD_INPUT_SWITCH
+#undef KANGAROO_CHEAT
+#undef ALLCARSHELI_CHEAT
+#undef ALT_DODO_CHEAT
+#undef REGISTER_START_BUTTON
+#undef BIND_VEHICLE_FIREWEAPON
+#undef BUTTON_ICONS
+
+#undef HUD_ENHANCEMENTS
+#undef TRIANGULAR_BLIPS
+#undef FIX_RADAR
+#undef RADIO_OFF_TEXT
+
+#undef MENU_MAP
+#undef SCROLLABLE_STATS_PAGE
+#undef CUSTOM_FRONTEND_OPTIONS
+
+#undef GRAPHICS_MENU_OPTIONS
+#undef NO_ISLAND_LOADING
+#undef CUTSCENE_BORDERS_SWITCH
+#undef MULTISAMPLING
+#undef INVERT_LOOK_FOR_PAD
+
+#undef USE_DEBUG_SCRIPT_LOADER
+#undef USE_MEASUREMENTS_IN_METERS
+#undef USE_PRECISE_MEASUREMENT_CONVERTION
+#undef MISSION_REPLAY
+#undef USE_ADVANCED_SCRIPT_DEBUG_OUTPUT
+#undef USE_BASIC_SCRIPT_DEBUG_OUTPUT
+
+#define DONT_FIX_REPLAY_BUGS
+
+#undef EXPLODING_AIRTRAIN
+#undef CAMERA_PICKUP
+#undef PED_SKIN
+#undef ANIMATE_PED_COL_MODEL
+#undef CANCELLABLE_CAR_ENTER
+#undef IMPROVED_CAMERA
+#undef FREE_CAM
+#undef RADIO_SCROLL_TO_PREV_STATION
+#undef BIG_IMG
 #endif

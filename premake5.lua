@@ -34,6 +34,11 @@ newoption {
 	description = "Build with opus"
 }
 
+newoption {
+	trigger     = "lto",
+	description = "Use link time optimization"
+}
+
 if(_OPTIONS["with-librw"]) then
 	Librw = "vendor/librw"
 else
@@ -60,7 +65,8 @@ end
 
 workspace "re3"
 	language "C++"
-	configurations { "Debug", "Release" }
+	configurations { "Debug", "Release", "Vanilla" }
+	startproject "re3"
 	location "build"
 	symbols "Full"
 	staticruntime "off"
@@ -107,9 +113,15 @@ workspace "re3"
 	filter "configurations:Debug"
 		defines { "DEBUG" }
 		
-	filter "configurations:Release"
+	filter "configurations:not Debug"
 		defines { "NDEBUG" }
-		optimize "On"
+		optimize "Speed"
+		if(_OPTIONS["lto"]) then
+			flags { "LinkTimeOptimization" }
+		end
+
+	filter "configurations:Vanilla"
+		defines { "VANILLA_DEFINES" }
 
 	filter { "platforms:win*" }
 		system "windows"
@@ -125,11 +137,9 @@ workspace "re3"
 	
 	filter { "platforms:*x86*" }
 		architecture "x86"
-		floatingpoint "Fast"
 		
 	filter { "platforms:*amd64*" }
 		architecture "amd64"
-		floatingpoint "Fast"
 
 	filter { "platforms:*arm*" }
 		architecture "ARM"
@@ -164,11 +174,10 @@ workspace "re3"
 
 	filter  {}
 		
-    function setpaths (gamepath, exepath, scriptspath)
-       scriptspath = scriptspath or ""
+    function setpaths (gamepath, exepath)
        if (gamepath) then
           postbuildcommands {
-             '{COPY} "%{cfg.buildtarget.abspath}" "' .. gamepath .. scriptspath .. '%{cfg.buildtarget.name}"'
+             '{COPYFILE} "%{cfg.buildtarget.abspath}" "' .. gamepath .. '%{cfg.buildtarget.name}"'
           }
           debugdir (gamepath)
           if (exepath) then
@@ -178,7 +187,6 @@ workspace "re3"
              debugdir (gamepath .. (dir or ""))
           end
        end
-       --targetdir ("bin/%{prj.name}/" .. scriptspath)
     end
 
 if(_OPTIONS["with-librw"]) then
@@ -191,11 +199,9 @@ project "librw"
 	
 	filter { "platforms:*x86*" }
 		architecture "x86"
-		floatingpoint "Fast"
 
 	filter { "platforms:*amd64*" }
 		architecture "amd64"
-		floatingpoint "Fast"
 
 	filter "platforms:win*"
 		staticruntime "on"
@@ -302,7 +308,7 @@ project "re3"
 	
 	filter {}
 	if(os.getenv("GTA_III_RE_DIR")) then
-		setpaths("$(GTA_III_RE_DIR)/", "%(cfg.buildtarget.name)", "")
+		setpaths("$(GTA_III_RE_DIR)/", "%(cfg.buildtarget.name)")
 	end
 	
 	filter "platforms:win*"
@@ -356,7 +362,7 @@ project "re3"
 	filter "platforms:*RW33*"
 		includedirs { "sdk/rwsdk/include/d3d8" }
 		libdirs { "sdk/rwsdk/lib/d3d8/release" }
-		links { "rwcore", "rpworld", "rpmatfx", "rpskin", "rphanim", "rtbmp", "rtquat", "rtcharse" }
+		links { "rwcore", "rpworld", "rpmatfx", "rpskin", "rphanim", "rtbmp", "rtquat", "rtcharse", "rpanisot" }
 		defines { "RWLIBS" }
 		linkoptions "/SECTION:_rwcseg,ER!W /MERGE:_rwcseg=.text"
 	
