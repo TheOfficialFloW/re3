@@ -25,7 +25,6 @@
 #define CDDEBUG(f, ...)   debug ("%s: " f "\n", "cdvd_stream", ## __VA_ARGS__)
 #define CDTRACE(f, ...)   printf("%s: " f "\n", "cdvd_stream", ## __VA_ARGS__)
 
-// #define ONE_THREAD_PER_CHANNEL // Don't use if you're not on SSD/Flash. (Also you may want to benefit from this via using all channels in Streaming.cpp)
 #ifdef PSP2
 #define ONE_THREAD_PER_CHANNEL
 #endif
@@ -85,7 +84,6 @@ CdStreamInitThread(void)
 	gChannelRequestQ.tail = 0;
 	gChannelRequestQ.size = gNumChannels + 1;
 	ASSERT(gChannelRequestQ.items != nil );
-
 #if !defined(PSP2)
 	gCdStreamSema = sem_open("/semaphore_cd_stream", O_CREAT, 0644, 0);
 

@@ -287,8 +287,8 @@ enum Config {
 #if !defined(RW_GL3) && defined(_WIN32)
 #define XINPUT
 #endif
-#if !defined(_WIN32) && !defined(__SWITCH__)
-// #define DONT_TRUST_RECOGNIZED_JOYSTICKS // Then we'll only rely on GLFW gamepad DB, and expect user to enter Controller->Detect joysticks if his joystick isn't on that list.
+#if defined XINPUT || (defined RW_GL3 && !defined LIBRW_SDL2 && !defined __SWITCH__)
+#define DETECT_JOYSTICK_MENU // Then we'll expect user to enter Controller->Detect joysticks if his joystick isn't detected at the start.
 #endif
 #define DETECT_PAD_INPUT_SWITCH // Adds automatic switch of pad related stuff between controller and kb/m
 #define KANGAROO_CHEAT
@@ -312,7 +312,11 @@ enum Config {
 #	define PS2_MENU
 //#	define PS2_MENU_USEALLPAGEICONS
 #else
-#	define MENU_MAP			// VC-like menu map. Make sure you have new menu.txd
+
+#	ifdef XINPUT
+#		define GAMEPAD_MENU		// Add gamepad menu
+#	endif
+
 #	define SCROLLABLE_STATS_PAGE	// only draggable by mouse atm
 //#	define TRIANGLE_BACK_BUTTON
 #	define CIRCLE_BACK_BUTTON
@@ -321,6 +325,7 @@ enum Config {
 #	define CUSTOM_FRONTEND_OPTIONS
 
 #	ifdef CUSTOM_FRONTEND_OPTIONS
+#		define MENU_MAP			// VC-like menu map. Won't appear if you don't have our menu.txd
 #		define GRAPHICS_MENU_OPTIONS // otherwise Display settings will be scrollable
 #		define NO_ISLAND_LOADING  // disable loadscreen between islands via loading all island data at once, consumes more memory and CPU
 #		define CUTSCENE_BORDERS_SWITCH
@@ -339,6 +344,10 @@ enum Config {
 //#define SIMPLIER_MISSIONS // apply simplifications from mobile
 //#define USE_ADVANCED_SCRIPT_DEBUG_OUTPUT
 #define SCRIPT_LOG_FILE_LEVEL 0 // 0 == no log, 1 == overwrite every frame, 2 == full log
+
+#if SCRIPT_LOG_FILE_LEVEL == 0
+#undef USE_ADVANCED_SCRIPT_DEBUG_OUTPUT
+#endif
 
 #ifndef USE_ADVANCED_SCRIPT_DEBUG_OUTPUT
 #define USE_BASIC_SCRIPT_DEBUG_OUTPUT
@@ -392,6 +401,13 @@ enum Config {
 #endif
 
 #endif
+
+// Streaming
+#if !defined(_WIN32) && !defined(__SWITCH__)
+	//#define ONE_THREAD_PER_CHANNEL // Don't use if you're not on SSD/Flash - also not utilized too much right now(see commented LoadAllRequestedModels in Streaming.cpp)
+	#define FLUSHABLE_STREAMING // Make it possible to interrupt reading when processing file isn't needed anymore.
+#endif
+#define BIG_IMG // Not complete - allows to read larger img files
 
 // Streaming
 #if !defined(_WIN32) && !defined(__SWITCH__) && !defined(PSP2)
@@ -468,6 +484,7 @@ enum Config {
 #undef RADIO_OFF_TEXT
 
 #undef MENU_MAP
+#undef GAMEPAD_MENU
 #undef SCROLLABLE_STATS_PAGE
 #undef CUSTOM_FRONTEND_OPTIONS
 

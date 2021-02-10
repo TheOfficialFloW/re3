@@ -1,4 +1,13 @@
 #include "common.h"
+#if defined DETECT_JOYSTICK_MENU && defined XINPUT
+#include <windows.h>
+#include <xinput.h>
+#if !defined(PSAPI_VERSION) || (PSAPI_VERSION > 1)
+#pragma comment( lib, "Xinput9_1_0.lib" )
+#else
+#pragma comment( lib, "Xinput.lib" )
+#endif
+#endif
 #include "platform.h"
 #include "crossplatform.h"
 #include "Renderer.h"
@@ -72,6 +81,12 @@
 	#define INVERT_PAD_SELECTOR MENUACTION_CFO_SELECT, "FEC_IVP", { new CCFOSelect((int8*)&CPad::bInvertLook4Pad, "Controller", "InvertPad", off_on, 2, false) },
 #else
 	#define INVERT_PAD_SELECTOR
+#endif
+
+#ifdef GAMEPAD_MENU
+	#define SELECT_CONTROLLER_TYPE  MENUACTION_CFO_SELECT, "FEC_TYP", { new CCFOSelect((int8*)&CMenuManager::m_PrefsControllerType, "Controller", "Type", controllerTypes, ARRAY_SIZE(controllerTypes), false, ControllerTypeAfterChange) },
+#else
+	#define SELECT_CONTROLLER_TYPE
 #endif
 
 const char *filterNames[] = { "FEM_NON", "FEM_SIM", "FEM_NRM", "FEM_MOB" };
@@ -180,38 +195,6 @@ void IslandLoadingAfterChange(int8 before, int8 after) {
 }
 #endif
 
-#ifdef MORE_LANGUAGES
-void LangPolSelect(int8 action)
-{
-	if (action == FEOPTION_ACTION_SELECT) {
-		FrontEndMenuManager.m_PrefsLanguage = CMenuManager::LANGUAGE_POLISH;
-		FrontEndMenuManager.m_bFrontEnd_ReloadObrTxtGxt = true;
-		FrontEndMenuManager.InitialiseChangedLanguageSettings();
-		FrontEndMenuManager.SaveSettings();
-	}
-}
-
-void LangRusSelect(int8 action)
-{
-	if (action == FEOPTION_ACTION_SELECT) {
-		FrontEndMenuManager.m_PrefsLanguage = CMenuManager::LANGUAGE_RUSSIAN;
-		FrontEndMenuManager.m_bFrontEnd_ReloadObrTxtGxt = true;
-		FrontEndMenuManager.InitialiseChangedLanguageSettings();
-		FrontEndMenuManager.SaveSettings();
-	}
-}
-
-void LangJapSelect(int8 action)
-{
-	if (action == FEOPTION_ACTION_SELECT) {
-		FrontEndMenuManager.m_PrefsLanguage = CMenuManager::LANGUAGE_JAPANESE;
-		FrontEndMenuManager.m_bFrontEnd_ReloadObrTxtGxt = true;
-		FrontEndMenuManager.InitialiseChangedLanguageSettings();
-		FrontEndMenuManager.SaveSettings();
-	}
-}
-#endif
-
 #ifndef MULTISAMPLING
 void GraphicsGoBack() {
 }
@@ -291,11 +274,13 @@ void ScreenModeAfterChange(int8 before, int8 after)
 
 #endif
 
-#ifdef DONT_TRUST_RECOGNIZED_JOYSTICKS
+#ifdef DETECT_JOYSTICK_MENU
 wchar selectedJoystickUnicode[128];
 int cachedButtonNum = -1;
 
 wchar* DetectJoystickDraw(bool* disabled, bool userHovering) {
+
+#if defined RW_GL3 && !defined LIBRW_SDL2
 	int numButtons;
 	int found = -1;
 	const char *joyname;
@@ -326,6 +311,40 @@ wchar* DetectJoystickDraw(bool* disabled, bool userHovering) {
 		}
 	}
 	if (PSGLOBAL(joy1id) == -1)
+#elif defined XINPUT
+	int found = -1;
+	XINPUT_STATE xstate;
+	memset(&xstate, 0, sizeof(XINPUT_STATE));
+	if (userHovering) {
+		for (int i = 0; i <= 3; i++) {
+			if (XInputGetState(i, &xstate) == ERROR_SUCCESS) {
+				if (xstate.Gamepad.bLeftTrigger || xstate.Gamepad.bRightTrigger) {
+					found = i;
+					break;
+				}
+				for (int j = XINPUT_GAMEPAD_DPAD_UP; j != XINPUT_GAMEPAD_Y << 1; j = (j << 1)) {
+					if (xstate.Gamepad.wButtons & j) {
+						found = i;
+						break;
+					}
+				}
+				if (found != -1)
+					break;
+			}
+		}
+		if (found != -1 && CPad::XInputJoy1 != found) {
+			if (CPad::XInputJoy1 != -1 && CPad::XInputJoy1 != found)
+				CPad::XInputJoy2 = CPad::XInputJoy1;
+			else
+				CPad::XInputJoy2 = -1;
+
+			CPad::XInputJoy1 = found;
+			cachedButtonNum = 0; // fake too, because xinput bypass CControllerConfig
+		}
+	}
+	sprintf(gSelectedJoystickName, "%d", CPad::XInputJoy1); // fake, on xinput we only store gamepad ids(thanks MS) so this is a temp variable to be used below
+	if (CPad::XInputJoy1 == -1)
+#endif
 		AsciiToUnicode("Not found", selectedJoystickUnicode);
 	else
 		AsciiToUnicode(gSelectedJoystickName, selectedJoystickUnicode);
@@ -343,6 +362,14 @@ void DetectJoystickGoBack() {
 #endif
 		cachedButtonNum = -1;
 	}
+}
+#endif
+
+#ifdef GAMEPAD_MENU
+const char* controllerTypes[] = { "FEC_DS2", "FEC_DS3", "FEC_DS4", "FEC_360", "FEC_ONE" };
+void ControllerTypeAfterChange(int8 before, int8 after)
+{
+	FrontEndMenuManager.LoadController(after);
 }
 #endif
 
@@ -369,10 +396,16 @@ CMenuScreenCustom aScreens[MENUPAGES] = {
 	},
 
 	// MENUPAGE_CONTROLLER_SETTINGS = 4
+#ifdef GAMEPAD_MENU
+	{ "FET_AGS", MENUPAGE_CONTROLLER_PC, MENUPAGE_CONTROLLER_PC, nil, nil,
+#else
 	{ "FET_CON", MENUPAGE_OPTIONS, MENUPAGE_OPTIONS, nil, nil,
+#endif
 		MENUACTION_CTRLCONFIG,		"FEC_CCF", { nil, SAVESLOT_NONE, MENUPAGE_CONTROLLER_SETTINGS },
 		MENUACTION_CTRLDISPLAY,		"FEC_CDP", { nil, SAVESLOT_NONE, MENUPAGE_CONTROLLER_SETTINGS },
+		INVERT_PAD_SELECTOR
 		MENUACTION_CTRLVIBRATION,	"FEC_VIB", { nil, SAVESLOT_NONE, MENUPAGE_CONTROLLER_SETTINGS },
+		SELECT_CONTROLLER_TYPE
 		MENUACTION_CHANGEMENU,		"FEDS_TB", { nil, SAVESLOT_NONE, MENUPAGE_NONE },
 	},
 
@@ -432,11 +465,6 @@ CMenuScreenCustom aScreens[MENUPAGES] = {
 		MENUACTION_LANG_GER,	"FEL_GER", { nil, SAVESLOT_NONE, MENUPAGE_LANGUAGE_SETTINGS },
 		MENUACTION_LANG_ITA,	"FEL_ITA", { nil, SAVESLOT_NONE, MENUPAGE_LANGUAGE_SETTINGS },
 		MENUACTION_LANG_SPA,    "FEL_SPA", { nil, SAVESLOT_NONE, MENUPAGE_LANGUAGE_SETTINGS },
-#ifdef MORE_LANGUAGES
-		MENUACTION_CFO_DYNAMIC,    "FEL_POL", { new CCFODynamic(nil, nil, nil, nil, LangPolSelect) },
-		MENUACTION_CFO_DYNAMIC,    "FEL_RUS", { new CCFODynamic(nil, nil, nil, nil, LangRusSelect) },
-		MENUACTION_CFO_DYNAMIC,    "FEL_JAP", { new CCFODynamic(nil, nil, nil, nil, LangJapSelect) },
-#endif
 		MENUACTION_CHANGEMENU,	"FEDS_TB", { nil, SAVESLOT_NONE, MENUPAGE_NONE },
 	},
 
@@ -643,7 +671,10 @@ CMenuScreenCustom aScreens[MENUPAGES] = {
 		MENUACTION_CTRLMETHOD,	"FET_CME", { nil, SAVESLOT_NONE, MENUPAGE_CONTROLLER_PC },
 #endif
 		MENUACTION_KEYBOARDCTRLS,"FET_RDK", { nil, SAVESLOT_NONE, MENUPAGE_KEYBOARD_CONTROLS },
-#ifdef DONT_TRUST_RECOGNIZED_JOYSTICKS
+#ifdef GAMEPAD_MENU
+		MENUACTION_CHANGEMENU, "FET_AGS", { nil, SAVESLOT_NONE, MENUPAGE_CONTROLLER_SETTINGS },
+#endif
+#ifdef DETECT_JOYSTICK_MENU
 		MENUACTION_CHANGEMENU,	"FEC_JOD", { nil, SAVESLOT_NONE, MENUPAGE_DETECT_JOYSTICK },
 #endif
 #ifdef PSP2
@@ -771,9 +802,7 @@ CMenuScreenCustom aScreens[MENUPAGES] = {
    { "FET_PAU", MENUPAGE_DISABLED, MENUPAGE_DISABLED, nil, nil,
 	   MENUACTION_RESUME,		"FEM_RES",	{ nil, SAVESLOT_NONE, MENUPAGE_NONE },
 	   MENUACTION_CHANGEMENU,	"FEN_STA",	{ nil, SAVESLOT_NONE, MENUPAGE_NEW_GAME },
-#ifdef MENU_MAP
-	   MENUACTION_CHANGEMENU,	"FEG_MAP",	{ nil, SAVESLOT_NONE, MENUPAGE_MAP },
-#endif
+	   // CMenuManager::LoadAllTextures will add map here, if MENU_MAP enabled and map textures are found
 	   MENUACTION_CHANGEMENU,	"FEP_STA",	{ nil, SAVESLOT_NONE, MENUPAGE_STATS },
 	   MENUACTION_CHANGEMENU,	"FEP_BRI",	{ nil, SAVESLOT_NONE, MENUPAGE_BRIEFS },
 	   MENUACTION_CHANGEMENU,	"FET_OPT",	{ nil, SAVESLOT_NONE, MENUPAGE_OPTIONS },
@@ -801,7 +830,9 @@ CMenuScreenCustom aScreens[MENUPAGES] = {
    { "FET_MTI", MENUPAGE_CONTROLLER_PC, MENUPAGE_CONTROLLER_PC, nil, nil,
 	   MENUACTION_MOUSESENS,	"FEC_MSH",	{ nil, SAVESLOT_NONE, MENUPAGE_MOUSE_CONTROLS },
 	   MENUACTION_INVVERT,		"FEC_IVV",	{ nil, SAVESLOT_NONE, MENUPAGE_MOUSE_CONTROLS },
+#ifndef GAMEPAD_MENU
        INVERT_PAD_SELECTOR
+#endif
 	   MENUACTION_MOUSESTEER,	"FET_MST",	{ nil, SAVESLOT_NONE, MENUPAGE_MOUSE_CONTROLS },
 	   MENUACTION_CHANGEMENU,	"FEDS_TB",	{ nil, SAVESLOT_NONE, MENUPAGE_NONE },
    },
@@ -851,7 +882,7 @@ CMenuScreenCustom aScreens[MENUPAGES] = {
 	},
 #endif
 
-#ifdef DONT_TRUST_RECOGNIZED_JOYSTICKS
+#ifdef DETECT_JOYSTICK_MENU
 	// MENUPAGE_DETECT_JOYSTICK
 	{ "FEC_JOD", MENUPAGE_CONTROLLER_PC, MENUPAGE_CONTROLLER_PC,
 		new CCustomScreenLayout({MENUSPRITE_MAINMENU, 40, 60, 20, FONT_BANK, FESCREEN_LEFT_ALIGN, false, MEDIUMTEXT_X_SCALE, MEDIUMTEXT_Y_SCALE}), DetectJoystickGoBack,

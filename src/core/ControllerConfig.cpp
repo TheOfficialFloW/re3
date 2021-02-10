@@ -354,6 +354,11 @@ uint32 CControllerConfigManager::ms_padButtonsInited = 0;
 
 void CControllerConfigManager::InitDefaultControlConfigJoyPad(uint32 buttons)
 {
+#ifdef XINPUT
+	// No manual bindings for you, honey.
+	return;
+#endif
+
 	m_bFirstCapture = true;
 
 	uint32 btn = buttons;
@@ -2680,11 +2685,6 @@ const char *XboxButtons[][MAX_CONTROLLERACTIONS] = CONTROLLER_BUTTONS("~T~", "~O
 #define PS2_CIRCLE "|"
 #define PS2_CROSS "/"
 #define PS2_SQUARE "^"
-#elif defined(BUTTON_ICONS)
-#define PS2_TRIANGLE "~T~"
-#define PS2_CIRCLE "~O~"
-#define PS2_CROSS "~X~"
-#define PS2_SQUARE "~Q~"
 #else
 #define PS2_TRIANGLE "TRIANGLE"
 #define PS2_CIRCLE "CIRCLE"
@@ -2697,7 +2697,7 @@ const char *PlayStationButtons_noIcons[][MAX_CONTROLLERACTIONS] =
 
 #ifdef BUTTON_ICONS
 const char *PlayStationButtons[][MAX_CONTROLLERACTIONS] =
-    CONTROLLER_BUTTONS(PS2_TRIANGLE, PS2_CIRCLE, PS2_CROSS, PS2_SQUARE, "~K~", "~M~", "~A~", "~J~", "~V~", "~C~", "SELECT");
+    CONTROLLER_BUTTONS("~T~", "~O~", "~X~", "~Q~", "~K~", "~M~", "~A~", "~J~", "~V~", "~C~", "SELECT");
 #endif
 
 #undef PS2_TRIANGLE
@@ -2714,11 +2714,36 @@ void CControllerConfigManager::GetWideStringOfCommandKeys(uint16 action, wchar *
 	if (CPad::GetPad(0)->IsAffectedByController) {
 		wchar wstr[16];
 
-		// TODO: INI and/or menu setting for Xbox/PS switch 
+		const char* (*Buttons)[MAX_CONTROLLERACTIONS];
+
 #ifdef BUTTON_ICONS
-		const char *(*Buttons)[MAX_CONTROLLERACTIONS] = CFont::ButtonsSlot != -1 ? XboxButtons : XboxButtons_noIcons;
+	#ifdef GAMEPAD_MENU
+		switch (FrontEndMenuManager.m_PrefsControllerType)
+		{
+		case CMenuManager::CONTROLLER_DUALSHOCK2:
+		case CMenuManager::CONTROLLER_DUALSHOCK3:
+		case CMenuManager::CONTROLLER_DUALSHOCK4:
+			Buttons = CFont::ButtonsSlot != -1 ? PlayStationButtons : PlayStationButtons_noIcons;
+			break;
+		default:
+	#endif
+			Buttons = CFont::ButtonsSlot != -1 ? XboxButtons : XboxButtons_noIcons;
+	#ifdef GAMEPAD_MENU
+			break;
+		}
+	#endif
 #else
-		const char *(*Buttons)[MAX_CONTROLLERACTIONS] = XboxButtons_noIcons;
+		switch (FrontEndMenuManager.m_PrefsControllerType)
+		{
+		case CMenuManager::CONTROLLER_DUALSHOCK2:
+		case CMenuManager::CONTROLLER_DUALSHOCK3:
+		case CMenuManager::CONTROLLER_DUALSHOCK4:
+			Buttons = PlayStationButtons_noIcons;
+			break;
+		default:
+			Buttons = XboxButtons_noIcons;
+			break;
+		}
 #endif
 
 		assert(Buttons[CPad::GetPad(0)->Mode][action] != nil); // we cannot use these

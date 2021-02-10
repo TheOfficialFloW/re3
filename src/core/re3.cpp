@@ -1,6 +1,14 @@
 #include <csignal>
 #define WITHWINDOWS
 #include "common.h"
+#if defined DETECT_JOYSTICK_MENU && defined XINPUT
+#include <xinput.h>
+#if !defined(PSAPI_VERSION) || (PSAPI_VERSION > 1)
+#pragma comment( lib, "Xinput9_1_0.lib" )
+#else
+#pragma comment( lib, "Xinput.lib" )
+#endif
+#endif
 #include "Renderer.h"
 #include "Credits.h"
 #include "Camera.h"
@@ -34,7 +42,7 @@
 #include "MBlur.h"
 #include "ControllerConfig.h"
 
-#ifdef DONT_TRUST_RECOGNIZED_JOYSTICKS
+#ifdef DETECT_JOYSTICK_MENU
 #include "crossplatform.h"
 #endif
 
@@ -77,16 +85,49 @@ mysrand(unsigned int seed)
 #ifdef CUSTOM_FRONTEND_OPTIONS
 #include "frontendoption.h"
 
+#ifdef MORE_LANGUAGES
+void LangPolSelect(int8 action)
+{
+	if (action == FEOPTION_ACTION_SELECT) {
+		FrontEndMenuManager.m_PrefsLanguage = CMenuManager::LANGUAGE_POLISH;
+		FrontEndMenuManager.m_bFrontEnd_ReloadObrTxtGxt = true;
+		FrontEndMenuManager.InitialiseChangedLanguageSettings();
+		FrontEndMenuManager.SaveSettings();
+	}
+}
+
+void LangRusSelect(int8 action)
+{
+	if (action == FEOPTION_ACTION_SELECT) {
+		FrontEndMenuManager.m_PrefsLanguage = CMenuManager::LANGUAGE_RUSSIAN;
+		FrontEndMenuManager.m_bFrontEnd_ReloadObrTxtGxt = true;
+		FrontEndMenuManager.InitialiseChangedLanguageSettings();
+		FrontEndMenuManager.SaveSettings();
+	}
+}
+
+void LangJapSelect(int8 action)
+{
+	if (action == FEOPTION_ACTION_SELECT) {
+		FrontEndMenuManager.m_PrefsLanguage = CMenuManager::LANGUAGE_JAPANESE;
+		FrontEndMenuManager.m_bFrontEnd_ReloadObrTxtGxt = true;
+		FrontEndMenuManager.InitialiseChangedLanguageSettings();
+		FrontEndMenuManager.SaveSettings();
+	}
+}
+#endif
+
 void
 CustomFrontendOptionsPopulate(void)
 {
-	// Moved to an array in MenuScreensCustom.cpp, but APIs are still available. see frontendoption.h
+	// Most of custom options are done statically in MenuScreensCustom.cpp, we add them here only if they're dependent to extra files
 
-	// These work only if we have neo folder, so they're dynamically added
+	// These work only if we have neo folder
+	int fd;
 #ifdef EXTENDED_PIPELINES
 	const char *vehPipelineNames[] = { "FED_MFX", "FED_NEO" };
 	const char *off_on[] = { "FEM_OFF", "FEM_ON" };
-	int fd = CFileMgr::OpenFile("neo/neo.txd","r");
+	fd = CFileMgr::OpenFile("neo/neo.txd","r");
 	if (fd) {
 #ifdef GRAPHICS_MENU_OPTIONS
 		FrontendOptionSetCursor(MENUPAGE_GRAPHICS_SETTINGS, -3, false);
@@ -101,6 +142,35 @@ CustomFrontendOptionsPopulate(void)
 		FrontendOptionAddSelect("FED_WLM", off_on, 2, (int8*)&CustomPipes::LightmapEnable, false, nil, "Graphics", "NeoLightMaps");
 		FrontendOptionAddSelect("FED_RGL", off_on, 2, (int8*)&CustomPipes::GlossEnable, false, nil, "Graphics", "NeoRoadGloss");
 #endif
+		CFileMgr::CloseFile(fd);
+	}
+#endif
+
+	// Add outsourced language translations, if files are found
+#ifdef MORE_LANGUAGES
+	int fd2;
+	FrontendOptionSetCursor(MENUPAGE_LANGUAGE_SETTINGS, 5, false);
+	if (fd = CFileMgr::OpenFile("text/polish.gxt","r")) {
+		if (fd2 = CFileMgr::OpenFile("models/fonts_p.txd","r")) {
+			FrontendOptionAddDynamic("FEL_POL", nil, nil, LangPolSelect, nil, nil);
+			CFileMgr::CloseFile(fd2);
+		}
+		CFileMgr::CloseFile(fd);
+	}
+
+	if (fd = CFileMgr::OpenFile("text/russian.gxt","r")) {
+		if (fd2 = CFileMgr::OpenFile("models/fonts_r.txd","r")) {
+			FrontendOptionAddDynamic("FEL_RUS", nil, nil, LangRusSelect, nil, nil);
+			CFileMgr::CloseFile(fd2);
+		}
+		CFileMgr::CloseFile(fd);
+	}
+
+	if (fd = CFileMgr::OpenFile("text/japanese.gxt","r")) {
+		if (fd2 = CFileMgr::OpenFile("models/fonts_j.txd","r")) {
+			FrontendOptionAddDynamic("FEL_JAP", nil, nil, LangJapSelect, nil, nil);
+			CFileMgr::CloseFile(fd2);
+		}
 		CFileMgr::CloseFile(fd);
 	}
 #endif
@@ -244,8 +314,32 @@ const char *iniKeyboardButtons[] = {"ESC","F1","F2","F3","F4","F5","F6","F7","F8
 
 void LoadINIControllerSettings()
 {
-#ifdef DONT_TRUST_RECOGNIZED_JOYSTICKS
+#ifdef DETECT_JOYSTICK_MENU
+#ifdef XINPUT
+	int storedJoy1 = -1;
+	if (ReadIniIfExists("Controller", "JoystickName", &storedJoy1)) {
+		CPad::XInputJoy1 = -1;
+		CPad::XInputJoy2 = -1;
+		XINPUT_STATE xstate;
+		memset(&xstate, 0, sizeof(XINPUT_STATE));
+
+		// Firstly confirm & set joy 1
+		if (XInputGetState(storedJoy1, &xstate) == ERROR_SUCCESS) {
+			CPad::XInputJoy1 = storedJoy1;
+		}
+
+		for (int i = 0; i <= 3; i++) {
+			if (XInputGetState(i, &xstate) == ERROR_SUCCESS) {
+				if (CPad::XInputJoy1 == -1)
+					CPad::XInputJoy1 = i;
+				else if (CPad::XInputJoy2 == -1 && i != CPad::XInputJoy1)
+					CPad::XInputJoy2 = i;
+			}
+		}
+	}
+#else
 	ReadIniIfExists("Controller", "JoystickName", gSelectedJoystickName, 128);
+#endif
 #endif
 	// force to default GTA behaviour (never overwrite bindings on joy change/initialization) if user init'ed/set bindings before we introduced that
 	if (!ReadIniIfExists("Controller", "PadButtonsInited", &ControlsManager.ms_padButtonsInited)) {
@@ -343,8 +437,12 @@ void SaveINIControllerSettings()
 		StoreIni("Bindings", iniControllerActions[i], value, 128);
 	}
 
-#ifdef DONT_TRUST_RECOGNIZED_JOYSTICKS
+#ifdef DETECT_JOYSTICK_MENU
+#ifdef XINPUT
+	StoreIni("Controller", "JoystickName", CPad::XInputJoy1);
+#else
 	StoreIni("Controller", "JoystickName", gSelectedJoystickName, 128);
+#endif
 #endif
 	StoreIni("Controller", "PadButtonsInited", ControlsManager.ms_padButtonsInited);
 	cfg.write_file("re3.ini");
@@ -369,6 +467,7 @@ bool LoadINISettings()
 	ReadIniIfExists("Controller", "HorizantalMouseSens", &TheCamera.m_fMouseAccelHorzntl);
 	ReadIniIfExists("Controller", "InvertMouseVertically", &MousePointerStateHelper.bInvertVertically);
 	ReadIniIfExists("Controller", "DisableMouseSteering", &CVehicle::m_bDisableMouseSteering);
+	ReadIniIfExists("Controller", "Vibration", &FrontEndMenuManager.m_PrefsUseVibration);
 	ReadIniIfExists("Audio", "SfxVolume", &FrontEndMenuManager.m_PrefsSfxVolume);
 	ReadIniIfExists("Audio", "MusicVolume", &FrontEndMenuManager.m_PrefsMusicVolume);
 	ReadIniIfExists("Audio", "Radio", &FrontEndMenuManager.m_PrefsRadioStation);
@@ -455,6 +554,7 @@ void SaveINISettings()
 	StoreIni("Controller", "HorizantalMouseSens", TheCamera.m_fMouseAccelHorzntl);
 	StoreIni("Controller", "InvertMouseVertically", MousePointerStateHelper.bInvertVertically);
 	StoreIni("Controller", "DisableMouseSteering", CVehicle::m_bDisableMouseSteering);
+	StoreIni("Controller", "Vibration", FrontEndMenuManager.m_PrefsUseVibration);
 	StoreIni("Audio", "SfxVolume", FrontEndMenuManager.m_PrefsSfxVolume);
 	StoreIni("Audio", "MusicVolume", FrontEndMenuManager.m_PrefsMusicVolume);
 	StoreIni("Audio", "Radio", FrontEndMenuManager.m_PrefsRadioStation);
@@ -690,7 +790,7 @@ void CTweakVars::Add(CTweakVar *var)
 		TweakVarsListSize = 0;
 	}
 	if(TweakVarsListSize > 63)
-		TweakVarsList = (CTweakVar**) realloc(TweakVarsList, (TweakVarsListSize + 1) * sizeof(*var));
+		TweakVarsList = (CTweakVar**) realloc(TweakVarsList, (TweakVarsListSize + 1) * sizeof(CTweakVar*));
 
 	TweakVarsList[TweakVarsListSize++] = var;
 //	TweakVarsList.push_back(var);

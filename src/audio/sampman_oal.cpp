@@ -14,8 +14,6 @@
 #include <AL/efx.h>
 #include <AL/efx-presets.h>
 
-#pragma comment(lib, "OpenAL32.lib")
-
 // for user MP3s
 #include <direct.h>
 #include <shlobj.h>
@@ -44,7 +42,6 @@
 
 //TODO: fix eax3 reverb
 //TODO: max channels
-//TODO: loop count
 
 cSampleManager SampleManager;
 bool _bSampmanInitialised = false;
@@ -117,7 +114,6 @@ char _mp3DirectoryPath[MAX_PATH];
 CStream    *aStream[MAX_STREAMS];
 uint8      nStreamPan   [MAX_STREAMS];
 uint8      nStreamVolume[MAX_STREAMS];
-uint8      nStreamLoopedFlag[MAX_STREAMS];
 uint32 _CurMP3Index;
 int32 _CurMP3Pos;
 bool _bIsMp3Active;
@@ -1322,7 +1318,7 @@ cSampleManager::LoadPedComment(uint32 nComment)
 			
 			case MUSICMODE_FRONTEND:
 			{
-				if ( MusicManager.GetCurrentTrack() == STREAMED_SOUND_GAME_COMPLETED )
+				if ( MusicManager.GetNextTrack() == STREAMED_SOUND_GAME_COMPLETED )
 					return false;
 
 				break;
@@ -1537,8 +1533,8 @@ cSampleManager::SetChannelEmittingVolume(uint32 nChannel, uint32 nVolume)
 	
 	// reduce channel volume when JB.MP3 or S4_BDBD.MP3 playing
 	if (   MusicManager.GetMusicMode()    == MUSICMODE_CUTSCENE
-		&& MusicManager.GetCurrentTrack() != STREAMED_SOUND_NEWS_INTRO
-		&& MusicManager.GetCurrentTrack() != STREAMED_SOUND_CUTSCENE_SAL4_BDBD )
+		&& MusicManager.GetNextTrack() != STREAMED_SOUND_NEWS_INTRO
+		&& MusicManager.GetNextTrack() != STREAMED_SOUND_CUTSCENE_SAL4_BDBD )
 	{
 		nChannelVolume[nChannel] = vol / 4;
 	}
@@ -1579,8 +1575,8 @@ cSampleManager::SetChannelVolume(uint32 nChannel, uint32 nVolume)
 		
 		// reduce the volume for JB.MP3 and S4_BDBD.MP3
 		if (   MusicManager.GetMusicMode()    == MUSICMODE_CUTSCENE
-			&& MusicManager.GetCurrentTrack() != STREAMED_SOUND_NEWS_INTRO
-			&& MusicManager.GetCurrentTrack() != STREAMED_SOUND_CUTSCENE_SAL4_BDBD )
+			&& MusicManager.GetNextTrack() != STREAMED_SOUND_NEWS_INTRO
+			&& MusicManager.GetNextTrack() != STREAMED_SOUND_CUTSCENE_SAL4_BDBD )
 		{
 			nChannelVolume[nChannel] = vol / 4;
 		}
@@ -1670,7 +1666,7 @@ cSampleManager::PreloadStreamedFile(uint8 nFile, uint8 nStream)
 		ASSERT(stream != NULL);
 		
 		aStream[nStream] = stream;
-		if ( !stream->IsOpened() )
+		if ( !stream->Setup() )
 		{
 			delete stream;
 			aStream[nStream] = NULL;
@@ -1700,7 +1696,7 @@ cSampleManager::StartPreloadedStreamedFile(uint8 nStream)
 	
 	if ( stream )
 	{
-		if ( stream->Setup() )
+		if ( stream->IsOpened() )
 		{
 			stream->Start();
 		}
@@ -1746,13 +1742,11 @@ cSampleManager::StartStreamedFile(uint8 nFile, uint32 nPos, uint8 nStream)
 
 							aStream[nStream] = stream;
 
-							if (stream->IsOpened()) {
-								if (stream->Setup()) {
-									if (position != 0)
-										stream->SetPosMS(position);
+							if (stream->Setup()) {
+								if (position != 0)
+									stream->SetPosMS(position);
 
-									stream->Start();
-								}
+								stream->Start();
 
 								return true;
 							} else {
@@ -1773,10 +1767,8 @@ cSampleManager::StartStreamedFile(uint8 nFile, uint32 nPos, uint8 nStream)
 						aStream[nStream] = new CStream(filename, ALStreamSources[nStream], ALStreamBuffers[nStream], IsThisTrackAt16KHz(nFile) ? 16000 : 32000);
 					}
 
-					if (aStream[nStream]->IsOpened()) {
-						if (aStream[nStream]->Setup()) {
-							aStream[nStream]->Start();
-						}
+					if (aStream[nStream]->Setup()) {
+						aStream[nStream]->Start();
 
 						return true;
 					} else {
@@ -1802,13 +1794,11 @@ cSampleManager::StartStreamedFile(uint8 nFile, uint32 nPos, uint8 nStream)
 
 						aStream[nStream] = stream;
 
-						if (stream->IsOpened()) {
-							if (stream->Setup()) {
-								if (position != 0)
-									stream->SetPosMS(position);
+						if (stream->Setup()) {
+							if (position != 0)
+								stream->SetPosMS(position);
 
-								stream->Start();
-							}
+							stream->Start();
 
 							return true;
 						} else {
@@ -1829,13 +1819,11 @@ cSampleManager::StartStreamedFile(uint8 nFile, uint32 nPos, uint8 nStream)
 					aStream[nStream] = new CStream(filename, ALStreamSources[nStream], ALStreamBuffers[nStream]);
 				}
 
-				if (aStream[nStream]->IsOpened()) {
-					if (aStream[nStream]->Setup()) {
-						if (position != 0)
-							aStream[nStream]->SetPosMS(position);
+				if (aStream[nStream]->Setup()) {
+					if (position != 0)
+						aStream[nStream]->SetPosMS(position);
 
-						aStream[nStream]->Start();
-					}
+					aStream[nStream]->Start();
 
 					_bIsMp3Active = true;
 					return true;
@@ -1859,13 +1847,11 @@ cSampleManager::StartStreamedFile(uint8 nFile, uint32 nPos, uint8 nStream)
 
 		aStream[nStream] = stream;
 		
-		if ( stream->IsOpened() ) {
-			if ( stream->Setup() ) {
-				if (position != 0)
-					stream->SetPosMS(position);	
+		if ( stream->Setup() ) {
+			if (position != 0)
+				stream->SetPosMS(position);	
 
-				stream->Start();
-			}
+			stream->Start();
 			
 			return true;
 		} else {
@@ -1888,6 +1874,9 @@ cSampleManager::StopStreamedFile(uint8 nStream)
 	{
 		delete stream;
 		aStream[nStream] = NULL;
+
+		if ( nStream == 0 )
+			_bIsMp3Active = false;
 	}
 }
 
@@ -1900,7 +1889,21 @@ cSampleManager::GetStreamedFilePosition(uint8 nStream)
 	
 	if ( stream )
 	{
-		return stream->GetPosMS();
+		if ( _bIsMp3Active )
+		{
+			tMP3Entry *mp3 = _GetMP3EntryByIndex(_CurMP3Index);
+			
+			if ( mp3 != NULL )
+			{
+				return stream->GetPosMS() + mp3->nTrackStreamPos;
+			}
+			else
+				return 0;
+		}
+		else
+		{
+			return stream->GetPosMS();
+		}
 	}
 	
 	return 0;
@@ -1966,6 +1969,12 @@ cSampleManager::Service(void)
 		
 		if ( stream )
 			stream->Update();
+	}
+	int refCount = CChannel::channelsThatNeedService;
+	for ( int32 i = 0; refCount && i < MAXCHANNELS+MAX2DCHANNELS; i++ )
+	{
+		if ( aChannel[i].Update() )
+			refCount--;
 	}
 }
 
