@@ -1,3 +1,5 @@
+#ifndef _CROSSPLATFORM_H_
+#define _CROSSPLATFORM_H_
 #include <time.h>
 
 #ifdef PSP2
@@ -262,4 +264,5 @@ HANDLE FindFirstFile(const char*, WIN32_FIND_DATA*);
 bool FindNextFile(HANDLE, WIN32_FIND_DATA*);
 void FileTimeToSystemTime(time_t*, SYSTEMTIME*);
 void GetDateFormat(int, int, SYSTEMTIME*, int, char*, int);
+#endif
 #endif
