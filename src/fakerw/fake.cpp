@@ -299,12 +299,38 @@ RwTextureAddressMode RwTextureGetAddressingV(const RwTexture *texture);
 // TODO
 void _rwD3D8TexDictionaryEnableRasterFormatConversion(bool enable) { }
 
+#ifdef PSP2
+static rw::Raster*
+ConvertTexRaster(rw::Raster *ras)
+{
+	using namespace rw;
+
+	if(ras->platform == rw::platform)
+		return ras;
+	// compatible platforms
+	if(ras->platform == PLATFORM_D3D8 && rw::platform == PLATFORM_D3D9 ||
+	   ras->platform == PLATFORM_D3D9 && rw::platform == PLATFORM_D3D8)
+		return ras;
+
+	Image *img = ras->toImage();
+	ras->destroy();
+	img->unpalettize();
+	ras = Raster::createFromImage(img);
+	img->destroy();
+	return ras;
+}
+#endif
+
 // hack for reading native textures
 RwBool rwNativeTextureHackRead(RwStream *stream, RwTexture **tex, RwInt32 size)
 {
 	*tex = Texture::streamReadNative(stream);
 #ifdef LIBRW
+#ifdef PSP2
+	(*tex)->raster = ConvertTexRaster((*tex)->raster);
+#else
 	(*tex)->raster = rw::Raster::convertTexToCurrentPlatform((*tex)->raster);
+#endif
 #endif
 	return *tex != nil;
 }
@@ -550,6 +576,7 @@ static void *reallocWrap(void *p, size_t sz, uint32 hint) { return real_realloc(
 
 // WARNING: unused parameters
 RwBool RwEngineInit(RwMemoryFunctions *memFuncs, RwUInt32 initFlags, RwUInt32 resArenaSize) {
+#ifndef PSP2
 	if(memFuncs){
 		real_malloc = memFuncs->rwmalloc;
 		real_realloc = memFuncs->rwrealloc;
@@ -560,6 +587,9 @@ RwBool RwEngineInit(RwMemoryFunctions *memFuncs, RwUInt32 initFlags, RwUInt32 re
 	}else{
 		Engine::init(nil);
 	}
+#else
+	Engine::init();
+#endif
 	return true;
 }
 // TODO: this is platform dependent
@@ -601,8 +631,18 @@ void RwD3D8EngineSetRefreshRate(RwUInt32 refreshRate) {}
 RwBool RwD3D8DeviceSupportsDXTTexture(void) { return true; }
 
 
-void RwD3D8EngineSetMultiSamplingLevels(RwUInt32 level) { Engine::setMultiSamplingLevels(level); }
-RwUInt32 RwD3D8EngineGetMaxMultiSamplingLevels(void) { return Engine::getMaxMultiSamplingLevels(); }
+void RwD3D8EngineSetMultiSamplingLevels(RwUInt32 level) {
+#ifndef PSP2	
+	Engine::setMultiSamplingLevels(level);
+#endif
+}
+RwUInt32 RwD3D8EngineGetMaxMultiSamplingLevels(void) { 
+#ifndef PSP2
+	return Engine::getMaxMultiSamplingLevels();
+#else
+	return 0;
+#endif
+}
 
 
 RpMaterial *RpMaterialCreate(void) { return Material::create(); }
