@@ -13,7 +13,8 @@
 #include "postfx.h"
 
 #ifdef PSP2
-extern GLuint fxraster;
+GLuint fxraster = 0xDEADBEEF, fxfb;
+extern bool using_fbo;
 #endif
 
 RwRaster *CPostFX::pFrontBuffer;
@@ -323,6 +324,10 @@ CPostFX::RenderOverlayShader(RwCamera *cam, int32 r, int32 g, int32 b, int32 a)
 	}
 #ifdef PSP2
 	glBindTexture(GL_TEXTURE_2D, fxraster);
+	RwIm2DVertexSetIntRGBA(&Vertex[0], 255, 255, 255, 255);
+	RwIm2DVertexSetIntRGBA(&Vertex[1], 255, 255, 255, 255);
+	RwIm2DVertexSetIntRGBA(&Vertex[2], 255, 255, 255, 255);
+	RwIm2DVertexSetIntRGBA(&Vertex[3], 255, 255, 255, 255);
 #endif
 	RwIm2DRenderIndexedPrimitive(rwPRIMTYPETRILIST, Vertex, 4, Index, 6);
 #ifdef RW_D3D9
@@ -450,24 +455,40 @@ CPostFX::Render(RwCamera *cam, uint32 red, uint32 green, uint32 blue, uint32 blu
 	if(type == MOTION_BLUR_SNIPER){
 		if(!bJustInitialised)
 			RenderOverlaySniper(cam, red, green, blue, blur);
-	}else switch(EffectSwitch){
-	case POSTFX_OFF:
-		// no actual rendering here
-		break;
-	case POSTFX_SIMPLE:
-		RenderOverlaySimple(cam, red, green, blue, blur);
-		break;
-	case POSTFX_NORMAL:
-		if(MotionBlurOn){
-			if(!bJustInitialised)
-				RenderOverlayBlur(cam, red, green, blue, blur);
-		}else{
-			RenderOverlayShader(cam, red, green, blue, blur);
+	}else {
+#if defined(PSP2) && defined(EXTENDED_COLOURFILTER)
+		if (NeedBackBuffer()) {
+			if(fxraster == 0xDEADBEEF){
+				glGenTextures(1, &fxraster);
+				glBindTexture(GL_TEXTURE_2D, fxraster);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 1024, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+				glGenFramebuffers(1, &fxfb);
+				glBindFramebuffer(GL_FRAMEBUFFER, fxfb);
+				glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, fxraster, 0);
+			}
+			using_fbo = true;
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
-		break;
-	case POSTFX_MOBILE:
-		RenderOverlayShader(cam, red, green, blue, blur);
-		break;
+#endif
+		switch(EffectSwitch){
+		case POSTFX_OFF:
+			// no actual rendering here
+			break;
+		case POSTFX_SIMPLE:
+			RenderOverlaySimple(cam, red, green, blue, blur);
+			break;
+		case POSTFX_NORMAL:
+			if(MotionBlurOn){
+				if(!bJustInitialised)
+					RenderOverlayBlur(cam, red, green, blue, blur);
+			}else{
+				RenderOverlayShader(cam, red, green, blue, blur);
+			}
+			break;
+		case POSTFX_MOBILE:
+			RenderOverlayShader(cam, red, green, blue, blur);
+			break;
+		}
 	}
 
 	// TODO? maybe we want this even without motion blur on sometimes?
