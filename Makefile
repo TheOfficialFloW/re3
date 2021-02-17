@@ -34,6 +34,22 @@ all:	$(TARGET).vpk
 		--add sce_sys/livearea/contents/bg.png=sce_sys/livearea/contents/bg.png \
 		--add sce_sys/livearea/contents/startup.png=sce_sys/livearea/contents/startup.png \
 		--add sce_sys/livearea/contents/template.xml=sce_sys/livearea/contents/template.xml \
+		--add sce_sys/manual/001.png=sce_sys/manual/001.png \
+		--add sce_sys/manual/002.png=sce_sys/manual/002.png \
+		--add sce_sys/manual/003.png=sce_sys/manual/003.png \
+		--add sce_sys/manual/004.png=sce_sys/manual/004.png \
+		--add sce_sys/manual/005.png=sce_sys/manual/005.png \
+		--add sce_sys/manual/006.png=sce_sys/manual/006.png \
+		--add sce_sys/manual/007.png=sce_sys/manual/007.png \
+		--add sce_sys/manual/008.png=sce_sys/manual/008.png \
+		--add sce_sys/manual/009.png=sce_sys/manual/009.png \
+		--add sce_sys/manual/010.png=sce_sys/manual/010.png \
+		--add sce_sys/manual/011.png=sce_sys/manual/011.png \
+		--add sce_sys/manual/012.png=sce_sys/manual/012.png \
+		--add sce_sys/manual/013.png=sce_sys/manual/013.png \
+		--add sce_sys/manual/014.png=sce_sys/manual/014.png \
+		--add sce_sys/manual/015.png=sce_sys/manual/015.png \
+		--add sce_sys/manual/016.png=sce_sys/manual/016.png \
 	$(TARGET).vpk
 
 eboot.bin:	$(TARGET).velf
