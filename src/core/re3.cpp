@@ -336,6 +336,14 @@ void LoadINIControllerSettings()
 					CPad::XInputJoy2 = i;
 			}
 		}
+
+		// There is no plug event on XInput, so let's leave XInputJoy1/2 as 0/1 respectively, and hotplug will be possible.
+		if (CPad::XInputJoy1 == -1) {
+			CPad::XInputJoy1 = 0;
+			CPad::XInputJoy2 = 1;
+		} else if (CPad::XInputJoy2 == -1) {
+			CPad::XInputJoy2 = (CPad::XInputJoy1 + 1) % 4;
+		}
 	}
 #else
 	ReadIniIfExists("Controller", "JoystickName", gSelectedJoystickName, 128);
@@ -508,6 +516,10 @@ bool LoadINISettings()
 #ifdef FIX_SPRITES
 	ReadIniIfExists("Draw", "FixSprites", &CDraw::ms_bFixSprites);	
 #endif
+#ifdef DRAW_GAME_VERSION_TEXT
+	extern bool gDrawVersionText;
+	ReadIniIfExists("General", "DrawVersionText", &gDrawVersionText);
+#endif
 
 #ifdef CUSTOM_FRONTEND_OPTIONS
 	bool migrate = cfg.category_size("FrontendOptions") != 0;
@@ -594,6 +606,10 @@ void SaveINISettings()
 #endif
 #ifdef FIX_SPRITES
 	StoreIni("Draw", "FixSprites", CDraw::ms_bFixSprites);	
+#endif
+#ifdef DRAW_GAME_VERSION_TEXT
+	extern bool gDrawVersionText;
+	StoreIni("General", "DrawVersionText", gDrawVersionText);
 #endif
 #ifdef CUSTOM_FRONTEND_OPTIONS
 	for (int i = 0; i < MENUPAGES; i++) {
@@ -715,18 +731,6 @@ SwitchCarCollision(void)
 {
 	if (FindPlayerVehicle() && FindPlayerVehicle()->IsCar())
 		FindPlayerVehicle()->bUsesCollision = !FindPlayerVehicle()->bUsesCollision;
-}
-
-static int engineStatus;
-static void
-SetEngineStatus(void)
-{
-	CVehicle *veh = FindPlayerVehicle();
-	if(veh == nil)
-		return;
-	if(!veh->IsCar())
-		return;
-	((CAutomobile*)veh)->Damage.SetEngineStatus(engineStatus);
 }
 
 static void
@@ -911,12 +915,22 @@ DebugMenuPopulate(void)
 		DebugMenuAddCmd("Spawn", "Spawn Predator", [](){ SpawnCar(MI_PREDATOR); });
 
 		DebugMenuAddVarBool8("Render", "Draw hud", &CHud::m_Wants_To_Draw_Hud, nil);
+		
+#ifdef PROPER_SCALING	
+		DebugMenuAddVarBool8("Render", "Proper Scaling", &CDraw::ms_bProperScaling, nil);
+#endif
+#ifdef FIX_RADAR
+		DebugMenuAddVarBool8("Render", "Fix Radar", &CDraw::ms_bFixRadar, nil);
+#endif
+#ifdef FIX_SPRITES
+		DebugMenuAddVarBool8("Render", "Fix Sprites", &CDraw::ms_bFixSprites, nil);
+#endif
 		DebugMenuAddVarBool8("Render", "PS2 Alpha test Emu", &gPS2alphaTest, nil);
 		DebugMenuAddVarBool8("Render", "Frame limiter", &FrontEndMenuManager.m_PrefsFrameLimiter, nil);
 		DebugMenuAddVarBool8("Render", "VSynch", &FrontEndMenuManager.m_PrefsVsync, nil);
 		DebugMenuAddVar("Render", "Max FPS", &RsGlobal.maxFPS, nil, 1, 1, 1000, nil);
 #ifdef NEW_RENDERER
-		DebugMenuAddVarBool8("Render", "new renderer", &gbNewRenderer, nil);
+		DebugMenuAddVarBool8("Render", "New Renderer", &gbNewRenderer, nil);
 extern bool gbRenderRoads;
 extern bool gbRenderEverythingBarRoads;
 //extern bool gbRenderFadingInUnderwaterEntities;
@@ -927,16 +941,16 @@ extern bool gbRenderVehicles;
 extern bool gbRenderWorld0;
 extern bool gbRenderWorld1;
 extern bool gbRenderWorld2;
-		DebugMenuAddVarBool8("Render", "gbRenderRoads", &gbRenderRoads, nil);
-		DebugMenuAddVarBool8("Render", "gbRenderEverythingBarRoads", &gbRenderEverythingBarRoads, nil);
-//		DebugMenuAddVarBool8("Render", "gbRenderFadingInUnderwaterEntities", &gbRenderFadingInUnderwaterEntities, nil);
-		DebugMenuAddVarBool8("Render", "gbRenderFadingInEntities", &gbRenderFadingInEntities, nil);
-		DebugMenuAddVarBool8("Render", "gbRenderWater", &gbRenderWater, nil);
-		DebugMenuAddVarBool8("Render", "gbRenderBoats", &gbRenderBoats, nil);
-		DebugMenuAddVarBool8("Render", "gbRenderVehicles", &gbRenderVehicles, nil);
-		DebugMenuAddVarBool8("Render", "gbRenderWorld0", &gbRenderWorld0, nil);
-		DebugMenuAddVarBool8("Render", "gbRenderWorld1", &gbRenderWorld1, nil);
-		DebugMenuAddVarBool8("Render", "gbRenderWorld2", &gbRenderWorld2, nil);
+		DebugMenuAddVarBool8("Debug Render", "gbRenderRoads", &gbRenderRoads, nil);
+		DebugMenuAddVarBool8("Debug Render", "gbRenderEverythingBarRoads", &gbRenderEverythingBarRoads, nil);
+//		DebugMenuAddVarBool8("Debug Render", "gbRenderFadingInUnderwaterEntities", &gbRenderFadingInUnderwaterEntities, nil);
+		DebugMenuAddVarBool8("Debug Render", "gbRenderFadingInEntities", &gbRenderFadingInEntities, nil);
+		DebugMenuAddVarBool8("Debug Render", "gbRenderWater", &gbRenderWater, nil);
+		DebugMenuAddVarBool8("Debug Render", "gbRenderBoats", &gbRenderBoats, nil);
+		DebugMenuAddVarBool8("Debug Render", "gbRenderVehicles", &gbRenderVehicles, nil);
+		DebugMenuAddVarBool8("Debug Render", "gbRenderWorld0", &gbRenderWorld0, nil);
+		DebugMenuAddVarBool8("Debug Render", "gbRenderWorld1", &gbRenderWorld1, nil);
+		DebugMenuAddVarBool8("Debug Render", "gbRenderWorld2", &gbRenderWorld2, nil);
 #endif
 
 #ifdef EXTENDED_COLOURFILTER
@@ -960,32 +974,29 @@ extern bool gbRenderWorld2;
 		DebugMenuAddVarBool8("Render", "Neo Road Gloss enable", &CustomPipes::GlossEnable, nil);
 		DebugMenuAddVar("Render", "Mult", &CustomPipes::GlossMult, nil, 0.1f, 0, 1.0f);
 #endif
-		DebugMenuAddVarBool8("Render", "Show Ped Paths", &gbShowPedPaths, nil);
-		DebugMenuAddVarBool8("Render", "Show Car Paths", &gbShowCarPaths, nil);
-		DebugMenuAddVarBool8("Render", "Show Car Path Links", &gbShowCarPathsLinks, nil);
-		DebugMenuAddVarBool8("Render", "Show Ped Road Groups", &gbShowPedRoadGroups, nil);
-		DebugMenuAddVarBool8("Render", "Show Car Road Groups", &gbShowCarRoadGroups, nil);
-		DebugMenuAddVarBool8("Render", "Show Collision Lines", &gbShowCollisionLines, nil);
-		DebugMenuAddVarBool8("Render", "Show Collision Polys", &gbShowCollisionPolys, nil);
-		DebugMenuAddVarBool8("Render", "Don't render Buildings", &gbDontRenderBuildings, nil);
-		DebugMenuAddVarBool8("Render", "Don't render Big Buildings", &gbDontRenderBigBuildings, nil);
-		DebugMenuAddVarBool8("Render", "Don't render Peds", &gbDontRenderPeds, nil);
-		DebugMenuAddVarBool8("Render", "Don't render Vehicles", &gbDontRenderVehicles, nil);
-		DebugMenuAddVarBool8("Render", "Don't render Objects", &gbDontRenderObjects, nil);
-		DebugMenuAddVarBool8("Render", "Don't Render Water", &gbDontRenderWater, nil);
-		
-#ifdef PROPER_SCALING	
-		DebugMenuAddVarBool8("Draw", "Proper Scaling", &CDraw::ms_bProperScaling, nil);
-#endif
-#ifdef FIX_RADAR
-		DebugMenuAddVarBool8("Draw", "Fix Radar", &CDraw::ms_bFixRadar, nil);
-#endif
-#ifdef FIX_SPRITES
-		DebugMenuAddVarBool8("Draw", "Fix Sprites", &CDraw::ms_bFixSprites, nil);
-#endif
+		DebugMenuAddVarBool8("Debug Render", "Show Ped Paths", &gbShowPedPaths, nil);
+		DebugMenuAddVarBool8("Debug Render", "Show Car Paths", &gbShowCarPaths, nil);
+		DebugMenuAddVarBool8("Debug Render", "Show Car Path Links", &gbShowCarPathsLinks, nil);
+		DebugMenuAddVarBool8("Debug Render", "Show Ped Road Groups", &gbShowPedRoadGroups, nil);
+		DebugMenuAddVarBool8("Debug Render", "Show Car Road Groups", &gbShowCarRoadGroups, nil);
+		DebugMenuAddVarBool8("Debug Render", "Show Collision Lines", &gbShowCollisionLines, nil);
+		DebugMenuAddVarBool8("Debug Render", "Show Collision Polys", &gbShowCollisionPolys, nil);
+		DebugMenuAddVarBool8("Debug Render", "Don't render Buildings", &gbDontRenderBuildings, nil);
+		DebugMenuAddVarBool8("Debug Render", "Don't render Big Buildings", &gbDontRenderBigBuildings, nil);
+		DebugMenuAddVarBool8("Debug Render", "Don't render Peds", &gbDontRenderPeds, nil);
+		DebugMenuAddVarBool8("Debug Render", "Don't render Vehicles", &gbDontRenderVehicles, nil);
+		DebugMenuAddVarBool8("Debug Render", "Don't render Objects", &gbDontRenderObjects, nil);
+		DebugMenuAddVarBool8("Debug Render", "Don't Render Water", &gbDontRenderWater, nil);
 
 		
-
+#ifdef DRAW_GAME_VERSION_TEXT
+		extern bool gDrawVersionText;
+		DebugMenuAddVarBool8("Debug", "Version Text", &gDrawVersionText, nil);
+#endif
+		DebugMenuAddVarBool8("Debug", "Show DebugStuffInRelease", &gbDebugStuffInRelease, nil);
+#ifdef TIMEBARS
+		DebugMenuAddVarBool8("Debug", "Show Timebars", &gbShowTimebars, nil);
+#endif
 #ifndef FINAL
 		DebugMenuAddVarBool8("Debug", "Print Memory Usage", &gbPrintMemoryUsage, nil);
 #ifdef USE_CUSTOM_ALLOCATOR
@@ -999,30 +1010,19 @@ extern bool gbRenderWorld2;
 #ifdef GTA_SCENE_EDIT
 		DebugMenuAddVarBool8("Debug", "Edit on", &CSceneEdit::m_bEditOn, nil);
 #endif
+		//DebugMenuAddCmd("Debug", "Start Credits", CCredits::Start);
+		//DebugMenuAddCmd("Debug", "Stop Credits", CCredits::Stop);
+
 #ifdef MENU_MAP
-		DebugMenuAddCmd("Debug", "Teleport to map waypoint", TeleportToWaypoint);
+		DebugMenuAddCmd("Game", "Teleport to map waypoint", TeleportToWaypoint);
 #endif
-		DebugMenuAddCmd("Debug", "Switch car collision", SwitchCarCollision);
-		DebugMenuAddVar("Debug", "Engine Status", &engineStatus, nil, 1, 0, 226, nil);
-		DebugMenuAddCmd("Debug", "Set Engine Status", SetEngineStatus);
-		DebugMenuAddCmd("Debug", "Fix Car", FixCar);
-		DebugMenuAddCmd("Debug", "Toggle Comedy Controls", ToggleComedy);
-		DebugMenuAddCmd("Debug", "Place Car on Road", PlaceOnRoad);
+		DebugMenuAddCmd("Game", "Fix Car", FixCar);
+		DebugMenuAddCmd("Game", "Place Car on Road", PlaceOnRoad);
+		DebugMenuAddCmd("Game", "Switch car collision", SwitchCarCollision);
+		DebugMenuAddCmd("Game", "Toggle Comedy Controls", ToggleComedy);
 
-		DebugMenuAddVarBool8("Debug", "Catalina Heli On", &CHeli::CatalinaHeliOn, nil);
-		DebugMenuAddCmd("Debug", "Catalina Fly By", CHeli::StartCatalinaFlyBy);
-		DebugMenuAddCmd("Debug", "Catalina Take Off", CHeli::CatalinaTakeOff);
-		DebugMenuAddCmd("Debug", "Catalina Fly Away", CHeli::MakeCatalinaHeliFlyAway);
-		DebugMenuAddVarBool8("Debug", "Script Heli On", &CHeli::ScriptHeliOn, nil);
+		DebugMenuAddVarBool8("Game", "Toggle popping heads on headshot", &CPed::bPopHeadsOnHeadshot, nil);
 
-		DebugMenuAddVarBool8("Debug", "Toggle popping heads on headshot", &CPed::bPopHeadsOnHeadshot, nil);
-		DebugMenuAddCmd("Debug", "Start Credits", CCredits::Start);
-		DebugMenuAddCmd("Debug", "Stop Credits", CCredits::Stop);
-
-		DebugMenuAddVarBool8("Debug", "Show DebugStuffInRelease", &gbDebugStuffInRelease, nil);
-#ifdef TIMEBARS
-		DebugMenuAddVarBool8("Debug", "Show Timebars", &gbShowTimebars, nil);
-#endif
 #ifdef MISSION_SWITCHER
 		DebugMenuEntry *missionEntry;
 		static const char* missions[] = {
@@ -1042,9 +1042,9 @@ extern bool gbRenderWorld2;
 			"Uzi Money", "Toyminator", "Rigged To Blow", "Bullion Run", "Rumble", "The Exchange"
 		};
 
-		missionEntry = DebugMenuAddVar("Debug", "Select mission", &nextMissionToSwitch, nil, 1, 0, ARRAY_SIZE(missions) - 1, missions);
+		missionEntry = DebugMenuAddVar("Game", "Select mission", &nextMissionToSwitch, nil, 1, 0, ARRAY_SIZE(missions) - 1, missions);
 		DebugMenuEntrySetWrap(missionEntry, true);
-		DebugMenuAddCmd("Debug", "Start selected mission ", SwitchToMission);
+		DebugMenuAddCmd("Game", "Start selected mission ", SwitchToMission);
 #endif
 
 		extern bool PrintDebugCode;
@@ -1056,9 +1056,9 @@ extern bool gbRenderWorld2;
 		DebugMenuAddVarBool8("Cam", "Print Debug Code", &PrintDebugCode, nil);
 		DebugMenuAddVar("Cam", "Cam Mode", &DebugCamMode, nil, 1, 0, CCam::MODE_EDITOR, nil);
 		DebugMenuAddCmd("Cam", "Normal", []() { DebugCamMode = 0; });
-		DebugMenuAddCmd("Cam", "Follow Ped With Bind", []() { DebugCamMode = CCam::MODE_FOLLOW_PED_WITH_BIND; });
-		DebugMenuAddCmd("Cam", "Reaction", []() { DebugCamMode = CCam::MODE_REACTION; });
-		DebugMenuAddCmd("Cam", "Chris", []() { DebugCamMode = CCam::MODE_CHRIS; });
+	//	DebugMenuAddCmd("Cam", "Follow Ped With Bind", []() { DebugCamMode = CCam::MODE_FOLLOW_PED_WITH_BIND; });
+	//	DebugMenuAddCmd("Cam", "Reaction", []() { DebugCamMode = CCam::MODE_REACTION; });
+	//	DebugMenuAddCmd("Cam", "Chris", []() { DebugCamMode = CCam::MODE_CHRIS; });
 		DebugMenuAddCmd("Cam", "Reset Statics", ResetCamStatics);
 
 		CTweakVars::AddDBG("Debug");

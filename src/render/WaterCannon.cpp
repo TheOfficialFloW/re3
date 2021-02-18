@@ -127,7 +127,7 @@ void CWaterCannon::Render(void)
 	int16 pointA = m_nCur % NUM_SEGMENTPOINTS;
 	
 	int16 pointB = pointA - 1;
-	if ( (pointA - 1) < 0 )
+	if ( pointB < 0 )
 		pointB += NUM_SEGMENTPOINTS;
 
 	bool bInit = false;
@@ -297,9 +297,11 @@ void CWaterCannons::Update(void)
 
 void CWaterCannons::Render(void)
 {
+	PUSH_RENDERGROUP("CWaterCannons::Render");
 	for ( int32 i = 0; i < NUM_WATERCANNONS; i++ )
 	{
 		if ( aCannons[i].m_nId != 0 )
 			aCannons[i].Render();
 	}
+	POP_RENDERGROUP();
 }

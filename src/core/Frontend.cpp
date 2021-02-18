@@ -2174,7 +2174,11 @@ CMenuManager::DrawControllerBound(int32 yStart, int32 xStart, int32 unused, int8
 
 		// Print bindings, including seperator (-) between them
 		CFont::SetScale(MENU_X(0.25f), MENU_Y(SMALLESTTEXT_Y_SCALE));
+#ifdef FIX_BUGS
+		for (; contSetOrder < MAX_SETORDERS && controllerAction >= 0; contSetOrder++) {
+#else
 		for (; contSetOrder < MAX_SETORDERS && controllerAction != -1; contSetOrder++) {
+#endif
 			wchar *settingText = ControlsManager.GetControllerSettingTextWithOrderNumber((e_ControllerAction)controllerAction, (eContSetOrder)contSetOrder);
 			if (settingText) {
 				++bindingsForThisOpt;
@@ -5702,6 +5706,9 @@ CMenuManager::SwitchMenuOnAndOff()
 		|| m_bShutDownFrontEndRequested || m_bStartUpFrontEndRequested) {
 
 		m_bMenuActive = !m_bMenuActive;
+#ifdef FIX_BUGS
+		CPad::StopPadsShaking();
+#endif
 
 		if (m_bShutDownFrontEndRequested)
 			m_bMenuActive = false;
@@ -6021,13 +6028,13 @@ CMenuManager::PrintController(void)
 				CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_SELECT_X)), MENU_Y(Y(TEXT_SELECT_Y)), TheText.Get("FEC_CAM"));
 				CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_START_X)), MENU_Y(Y(TEXT_START_Y)), TheText.Get("FEC_PAU"));
 				CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R2_X)), MENU_Y(Y(TEXT_R2_Y)), TheText.Get("FEC_CWR"));
-				CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R1_X)), MENU_Y(Y(TEXT_R1_Y)), TheText.Get("FEC_TAR"));
+				CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R1_X)), MENU_Y(Y(TEXT_R1_Y)), TheText.Get("FEC_ATT"));
 				CFont::SetRightJustifyOn(); // X
 				CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_SQUARE_X)), MENU_Y(Y(TEXT_SQUARE_Y)), TheText.Get("FEC_JUM"));
 				CFont::SetJustifyOn(); // X
-				CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_TRIANGLE_X)), MENU_Y(Y(TEXT_TRIANGLE_Y)), TheText.Get("FEC_LOF"));
-				CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_CIRCLE_X)), MENU_Y(Y(TEXT_CIRCLE_Y)), TheText.Get("FEC_RUN"));
-				CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_CROSS_X)), MENU_Y(Y(TEXT_CROSS_Y)), TheText.Get("FEC_ATT"));
+				CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_TRIANGLE_X)), MENU_Y(Y(TEXT_TRIANGLE_Y)), TheText.Get("FEC_ENV"));
+				CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_CIRCLE_X)), MENU_Y(Y(TEXT_CIRCLE_Y)), TheText.Get("FEC_LOF"));
+				CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_CROSS_X)), MENU_Y(Y(TEXT_CROSS_Y)), TheText.Get("FEC_RUN"));
 				CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_RSTICK_X)), MENU_Y(Y(TEXT_RSTICK_Y)), TheText.Get("FEC_FPC"));
 				CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R3_X)), MENU_Y(Y(TEXT_R3_Y)), TheText.Get("FEC_LB3"));
 				CFont::PrintString(MENU_X_LEFT_ALIGNED(X(TEXT_R3_X)), MENU_Y(Y(TEXT_R3_Y + 13.0f)), TheText.Get("FEC_R3"));

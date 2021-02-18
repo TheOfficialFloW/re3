@@ -1,20 +1,20 @@
 #ifndef _WIN32
 #include "common.h"
 #include "crossplatform.h"
-#include <pthread.h>
 #include <signal.h>
+#include <pthread.h>
 #include <semaphore.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/time.h>
-#if !defined(PSP2)
 #include <sys/statvfs.h>
-#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/resource.h>
-#if !defined(PSP2)
+#include <stdarg.h>
+
+#ifdef __linux__
 #include <sys/syscall.h>
 #endif
 
@@ -25,12 +25,60 @@
 #define CDDEBUG(f, ...)   debug ("%s: " f "\n", "cdvd_stream", ## __VA_ARGS__)
 #define CDTRACE(f, ...)   printf("%s: " f "\n", "cdvd_stream", ## __VA_ARGS__)
 
-#ifdef PSP2
-#define ONE_THREAD_PER_CHANNEL
-#endif
-
 #ifdef FLUSHABLE_STREAMING
 bool flushStream[MAX_CDCHANNELS];
+#endif
+
+#ifdef USE_UNNAMED_SEM
+
+#define RE3_SEM_OPEN(name, ...) re3_sem_open()
+sem_t*
+re3_sem_open(void)
+{
+	sem_t* sem = (sem_t*)malloc(sizeof(sem_t));
+	if (sem_init(sem, 0, 1) == -1) {
+		sem = SEM_FAILED;
+	}
+
+	return sem;
+}
+
+#define RE3_SEM_CLOSE(sem, format, ...) re3_sem_close(sem)
+void
+re3_sem_close(sem_t* sem)
+{
+	sem_destroy(sem);
+	free(sem);
+}
+
+#else
+
+#define RE3_SEM_OPEN re3_sem_open
+sem_t*
+re3_sem_open(const char* format, ...)
+{
+	char semName[21];
+	va_list va;
+	va_start(va, format);
+	vsprintf(semName, format, va);
+
+	return sem_open(semName, O_CREAT, 0644, 1);
+}
+
+#define RE3_SEM_CLOSE re3_sem_close
+void
+re3_sem_close(sem_t* sem, const char* format, ...)
+{
+	sem_close(sem);
+
+	char semName[21];
+	va_list va;
+	va_start(va, format);
+	vsprintf(semName, format, va);
+
+	sem_unlink(semName);
+}
+
 #endif
 
 struct CdReadInfo
@@ -77,24 +125,16 @@ void
 CdStreamInitThread(void)
 {
 	int status;
-	char semName[20];
 #ifndef ONE_THREAD_PER_CHANNEL
 	gChannelRequestQ.items = (int32 *)calloc(gNumChannels + 1, sizeof(int32));
 	gChannelRequestQ.head = 0;
 	gChannelRequestQ.tail = 0;
 	gChannelRequestQ.size = gNumChannels + 1;
 	ASSERT(gChannelRequestQ.items != nil );
-#if !defined(PSP2)
-	gCdStreamSema = sem_open("/semaphore_cd_stream", O_CREAT, 0644, 0);
+	gCdStreamSema = RE3_SEM_OPEN("/semaphore_cd_stream");
+
 
 	if (gCdStreamSema == SEM_FAILED) {
-#else
-	gCdStreamSema = (sem_t *)malloc(sizeof(sem_t));
-	status = sem_init(gCdStreamSema, 0, 0);
-
-
-	if (status == -1) {
-#endif
 		CDTRACE("failed to create stream semaphore");
 		ASSERT(0);
 		return;
@@ -105,17 +145,9 @@ CdStreamInitThread(void)
 	{
 		for ( int32 i = 0; i < gNumChannels; i++ )
 		{
-#if !defined(PSP2)
-			sprintf(semName,"/semaphore_done%d",i);
-			gpReadInfo[i].pDoneSemaphore = sem_open(semName, O_CREAT, 0644, 0);
+			gpReadInfo[i].pDoneSemaphore = RE3_SEM_OPEN("/semaphore_done%d", i);
 
 			if (gpReadInfo[i].pDoneSemaphore == SEM_FAILED)
-#else
-			gpReadInfo[i].pDoneSemaphore = (sem_t *)malloc(sizeof(sem_t));
-			status = sem_init(gpReadInfo[i].pDoneSemaphore, 0, 0);
-
-			if (status == -1)
-#endif
 			{
 				CDTRACE("failed to create sync semaphore");
 				ASSERT(0);
@@ -123,17 +155,9 @@ CdStreamInitThread(void)
 			}
 
 #ifdef ONE_THREAD_PER_CHANNEL
-#if !defined(PSP2)
-			sprintf(semName,"/semaphore_start%d",i);
-			gpReadInfo[i].pStartSemaphore = sem_open(semName, O_CREAT, 0644, 0);
+			gpReadInfo[i].pStartSemaphore = RE3_SEM_OPEN("/semaphore_start%d", i);
 
 			if (gpReadInfo[i].pStartSemaphore == SEM_FAILED)
-#else
-			gpReadInfo[i].pStartSemaphore = (sem_t *)malloc(sizeof(sem_t));
-			status = sem_init(gpReadInfo[i].pStartSemaphore, 0, 0);
-
-			if (status == -1)
-#endif
 			{
 				CDTRACE("failed to create start semaphore");
 				ASSERT(0);
@@ -173,7 +197,6 @@ CdStreamInitThread(void)
 void
 CdStreamInit(int32 numChannels)
 {
-#if !defined(PSP2)
 	struct statvfs fsInfo;
 
 	if((statvfs("models/gta3.img", &fsInfo)) < 0)
@@ -182,7 +205,6 @@ CdStreamInit(int32 numChannels)
 		ASSERT(0);
 		return;
 	}
-#endif
 #ifdef __linux__
 	_gdwCdStreamFlags = O_RDONLY | O_NOATIME;
 #else
@@ -196,11 +218,7 @@ CdStreamInit(int32 numChannels)
 		debug("Using no buffered loading for streaming\n");
 	}
 */
-#if !defined(PSP2)
 	void *pBuffer = (void *)RwMallocAlign(CDSTREAM_SECTOR_SIZE, (RwUInt32)fsInfo.f_bsize);
-#else
-	void *pBuffer = (void *)RwMallocAlign(CDSTREAM_SECTOR_SIZE, CDSTREAM_SECTOR_SIZE);
-#endif
 	ASSERT( pBuffer != nil );
 
 	gNumImages = 0;
@@ -497,40 +515,16 @@ void *CdStreamThread(void *param)
 	}
 	char semName[20];
 #ifndef ONE_THREAD_PER_CHANNEL
-#if !defined(PSP2)
 	for ( int32 i = 0; i < gNumChannels; i++ )
 	{
-		sem_close(gpReadInfo[i].pDoneSemaphore);
-		sprintf(semName,"/semaphore_done%d",i);
-		sem_unlink(semName);
+		RE3_SEM_CLOSE(gpReadInfo[i].pDoneSemaphore, "/semaphore_done%d", i);
 	}
-	sem_close(gCdStreamSema);
-	sem_unlink("/semaphore_cd_stream");
-#else
-	for ( int32 i = 0; i < gNumChannels; i++ )
-	{
-		sem_destroy(gpReadInfo[i].pDoneSemaphore);
-		free(gpReadInfo[i].pDoneSemaphore);
-	}
-	sem_destroy(gCdStreamSema);
-	free(gCdStreamSema);
-#endif
+	RE3_SEM_CLOSE(gCdStreamSema, "/semaphore_cd_stream");
 	free(gChannelRequestQ.items);
 #else
-#if !defined(PSP2)
-	sem_close(gpReadInfo[channel].pStartSemaphore);
-	sprintf(semName,"/semaphore_start%d",channel);
-	sem_unlink(semName);
+	RE3_SEM_CLOSE(gpReadInfo[channel].pStartSemaphore, "/semaphore_start%d", channel);
 
-	sem_close(gpReadInfo[channel].pDoneSemaphore);
-	sprintf(semName,"/semaphore_done%d",channel);
-	sem_unlink(semName);
-#else
-	sem_destroy(gpReadInfo[channel].pStartSemaphore);
-	sem_destroy(gpReadInfo[channel].pDoneSemaphore);
-	free(gpReadInfo[channel].pStartSemaphore);
-	free(gpReadInfo[channel].pDoneSemaphore);
-#endif
+	RE3_SEM_CLOSE(gpReadInfo[channel].pDoneSemaphore, "/semaphore_done%d", channel);
 #endif
 	if (gpReadInfo)
 		free(gpReadInfo);

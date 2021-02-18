@@ -183,7 +183,11 @@ enum Config {
 
 // those infamous texts
 #define DRAW_GAME_VERSION_TEXT
-#define DRAW_MENU_VERSION_TEXT
+#ifdef DRAW_GAME_VERSION_TEXT
+	// unlike R* development builds, ours has runtime switch on debug menu & .ini, and disabled as default.
+	#define USE_OUR_VERSIONING // If you disable this then game will fetch version from peds.col, as R* did while in development
+#endif
+//#define DRAW_MENU_VERSION_TEXT
 
 // Memory allocation and compression
 // #define USE_CUSTOM_ALLOCATOR		// use CMemoryHeap for allocation. use with care, not finished yet
@@ -263,8 +267,12 @@ enum Config {
 #define PS2_ALPHA_TEST		// emulate ps2 alpha test 
 #define IMPROVED_VIDEOMODE	// save and load videomode parameters instead of a magic number
 //#define DISABLE_LOADING_SCREEN // disable the loading screen which vastly improves the loading time
+#ifdef DISABLE_LOADING_SCREEN
+// enable the PC splash
+#undef RANDOMSPLASH
+#endif
 #define DISABLE_VSYNC_ON_TEXTURE_CONVERSION // make texture conversion work faster by disabling vsync
-#define ANISOTROPIC_FILTERING	// set all textures to max anisotropic filtering
+//#define ANISOTROPIC_FILTERING	// set all textures to max anisotropic filtering
 //#define USE_TEXTURE_POOL
 #ifdef LIBRW
 #define EXTENDED_COLOURFILTER		// more options for colour filter (replaces mblur)

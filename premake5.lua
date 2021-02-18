@@ -1,11 +1,4 @@
 newoption {
-	trigger     = "glewdir",
-	value       = "PATH",
-	description = "Directory of GLEW",
-	default     = "vendor/glew-2.1.0"
-}
-
-newoption {
 	trigger     = "glfwdir64",
 	value       = "PATH",
 	description = "Directory of glfw",
@@ -158,7 +151,6 @@ workspace "re3"
 		
 	filter "platforms:*librw_gl3_glfw*"
 		defines { "RW_GL3" }
-		includedirs { path.join(_OPTIONS["glewdir"], "include") }
 		if(not _OPTIONS["with-librw"]) then
 			libdirs { path.join(Librw, "lib/%{getsys(cfg.system)}-%{getarch(cfg.architecture)}-gl3/%{cfg.buildcfg}") }
 		end
@@ -168,9 +160,6 @@ workspace "re3"
 		
 	filter "platforms:*amd64-librw_gl3_glfw*"
 		includedirs { path.join(_OPTIONS["glfwdir64"], "include") }
-
-	filter "platforms:win*librw_gl3_glfw*"
-		defines { "GLEW_STATIC" }
 
 	filter  {}
 		
@@ -196,6 +185,7 @@ project "librw"
 	targetdir(path.join(Librw, "lib/%{cfg.platform}/%{cfg.buildcfg}"))
 	files { path.join(Librw, "src/*.*") }
 	files { path.join(Librw, "src/*/*.*") }
+	files { path.join(Librw, "src/gl/*/*.*") }
 	
 	filter { "platforms:*x86*" }
 		architecture "x86"
@@ -263,6 +253,7 @@ project "re3"
 	files { addSrcFiles("src/vehicles") }
 	files { addSrcFiles("src/weapons") }
 	files { addSrcFiles("src/extras") }
+	files { "src/extras/GitSHA1.cpp" } -- this won't be in repo in first build
 
 	includedirs { "src" }
 	includedirs { "src/animation" }
@@ -313,7 +304,7 @@ project "re3"
 	
 	filter {}
 	if(os.getenv("GTA_III_RE_DIR")) then
-		setpaths("$(GTA_III_RE_DIR)/", "%(cfg.buildtarget.name)")
+		setpaths(os.getenv("GTA_III_RE_DIR") .. "/", "%(cfg.buildtarget.name)")
 	end
 	
 	filter "platforms:win*"
@@ -327,6 +318,10 @@ project "re3"
 			-- external librw is dynamic
 			staticruntime "on"
 		end
+		prebuildcommands { '"%{prj.location}..\\printHash.bat" "%{prj.location}..\\src\\extras\\GitSHA1.cpp"' }
+	
+	filter "platforms:not win*"
+		prebuildcommands { '"%{prj.location}/../printHash.sh" "%{prj.location}/../src/extras/GitSHA1.cpp"' }
 
 	filter "platforms:win*glfw*"
 		staticruntime "off"
@@ -390,25 +385,23 @@ project "re3"
 		libdirs { "sdk/dx8sdk/lib" }
 		
 	filter "platforms:win-x86*gl3_glfw*"
-		libdirs { path.join(_OPTIONS["glewdir"], "lib/Release/Win32") }
 		libdirs { path.join(_OPTIONS["glfwdir32"], "lib-" .. string.gsub(_ACTION or '', "vs", "vc")) }
-		links { "opengl32", "glew32s", "glfw3" }
+		links { "opengl32", "glfw3" }
 		
 	filter "platforms:win-amd64*gl3_glfw*"
-		libdirs { path.join(_OPTIONS["glewdir"], "lib/Release/x64") }
 		libdirs { path.join(_OPTIONS["glfwdir64"], "lib-" .. string.gsub(_ACTION or '', "vs", "vc")) }
-		links { "opengl32", "glew32s", "glfw3" }
+		links { "opengl32", "glfw3" }
 
 	filter "platforms:linux*gl3_glfw*"
-		links { "GL", "GLEW", "glfw" }
+		links { "GL", "glfw" }
 		
 	filter "platforms:bsd*gl3_glfw*"
-		links { "GL", "GLEW", "glfw", "sysinfo" }
+		links { "GL", "glfw", "sysinfo" }
 		includedirs { "/usr/local/include" }
 		libdirs { "/usr/local/lib" }
 
 	filter "platforms:macosx*gl3_glfw*"
-		links { "GLEW", "glfw" }
+		links { "glfw" }
 		linkoptions { "-framework OpenGL" }
 		includedirs { "/opt/local/include" }
 		includedirs { "/usr/local/include" }
