@@ -53,7 +53,7 @@ long _dwOperatingSystemVersion;
 #include "MemoryMgr.h"
 
 // We found out that GLFW's keyboard input handling is still pretty delayed/not stable, so now we fetch input from X11 directly on Linux.
-#if !defined _WIN32 && !defined __APPLE__ && !defined __SWITCH__ // && !defined WAYLAND
+#if !defined(_WIN32) && !defined(__APPLE__) && !defined(__SWITCH__) && !defined(PSP2)// && !defined WAYLAND
 #define GET_KEYBOARD_INPUT_FROM_X11
 #endif
 
@@ -1279,7 +1279,7 @@ void HandleExit()
 #endif
 }
 
-#if defined(_WIN32) && !defined(PSP2)
+#if !defined(_WIN32) && !defined(PSP2)
 void terminateHandler(int sig, siginfo_t *info, void *ucontext) {
 	RsGlobal.quit = TRUE;
 }
@@ -1476,7 +1476,6 @@ keypressCB(GLFWwindow* window, int key, int scancode, int action, int mods)
 		else if (action == GLFW_PRESS) RsKeyboardEventHandler(rsKEYDOWN, &ks);
 	}
 }
-#endif
 
 #else
 
@@ -1737,6 +1736,7 @@ void checkKeyPresses()
 
 }
 #endif
+#endif
 
 // R* calls that in ControllerConfig, idk why
 void
@@ -1821,7 +1821,7 @@ main(int argc, char *argv[])
 	InitMemoryMgr();
 #endif
 
-#if defined(_WIN32) && !defined(PSP2)
+#if !defined(_WIN32) && !defined(PSP2)
 	struct sigaction act;
 	act.sa_sigaction = terminateHandler;
 	act.sa_flags = SA_SIGINFO;
@@ -2041,6 +2041,7 @@ main(int argc, char *argv[])
 		{
 #if !defined(PSP2)
 			glfwPollEvents();
+#endif
 #ifdef GET_KEYBOARD_INPUT_FROM_X11
 			checkKeyPresses();
 #endif

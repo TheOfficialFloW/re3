@@ -886,14 +886,14 @@ cSampleManager::Initialise(void)
 		alListenerfv(AL_ORIENTATION, orientation);
 		
 		alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
-		
+#ifndef PSP2		
 		if ( alcIsExtensionPresent(ALDevice, (ALCchar*)ALC_EXT_EFX_NAME) )
 		{
 			_effectsSupported = providers[index].bSupportsFx;
 			alGenAuxiliaryEffectSlots(1, &ALEffectSlot);
 			alGenEffects(1, &ALEffect);
 		}
-
+#endif
 		alGenSources(MAX_STREAMS*2, ALStreamSources[0]);
 		for ( int32 i = 0; i < MAX_STREAMS; i++ )
 		{
