@@ -639,13 +639,9 @@ public:
 	CVector &GetGameCamPosition(void) { return m_vecGameCamPos; }
 	void CalculateDerivedValues(void);
 	bool IsPointVisible(const CVector &center, const CMatrix *mat);
-	bool IsSphereVisible(const CVector &center, float radius, const CMatrix *mat);
+	bool IsSphereVisible(const CVector &center, float radius, Const CMatrix *mat);
 	bool IsSphereVisible(const CVector &center, float radius);
-#ifdef GTA_PS2
-	bool IsBoxVisible(CVuVector *box, const CMatrix *mat);
-#else
-	bool IsBoxVisible(CVector *box, const CMatrix *mat);
-#endif
+	bool IsBoxVisible(CVUVECTOR *box, const CMatrix *mat);
 };
 
 VALIDATE_SIZE(CCamera, 0xE9D8);

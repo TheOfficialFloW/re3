@@ -92,7 +92,10 @@ bool gbModelViewer;
 bool gbShowTimebars;
 #endif
 #ifdef DRAW_GAME_VERSION_TEXT
-bool gDrawVersionText; // Our addition, we think it was always enabled on !MASTER builds
+bool gbDrawVersionText; // Our addition, we think it was always enabled on !MASTER builds
+#endif
+#ifdef NO_MOVIES
+bool gbNoMovies;
 #endif
 
 volatile int32 frameCount;
@@ -1125,7 +1128,7 @@ DisplayGameDebugText()
 #ifdef DRAW_GAME_VERSION_TEXT
 	wchar ver[200];
 
-	if(gDrawVersionText) // This realtime switch is our thing
+	if(gbDrawVersionText) // This realtime switch is our thing
 	{
 
 #ifdef USE_OUR_VERSIONING
@@ -1190,10 +1193,13 @@ DisplayGameDebugText()
 
 	FrameSamples++;
 #ifdef FIX_BUGS
-	FramesPerSecondCounter += frameTime / 1000.f; // convert to seconds
+	// this is inaccurate with over 1000 fps
+	static uint32 PreviousTimeInMillisecondsPauseMode = 0;
+	FramesPerSecondCounter += (CTimer::GetTimeInMillisecondsPauseMode() - PreviousTimeInMillisecondsPauseMode) / 1000.0f; // convert to seconds
+	PreviousTimeInMillisecondsPauseMode = CTimer::GetTimeInMillisecondsPauseMode();
 	FramesPerSecond = FrameSamples / FramesPerSecondCounter;
 #else
-	FramesPerSecondCounter += 1000.0f / (CTimer::GetTimeStepNonClippedInSeconds() * 1000.0f);	
+	FramesPerSecondCounter += 1000.0f / CTimer::GetTimeStepNonClippedInMilliseconds();	
 	FramesPerSecond = FramesPerSecondCounter / FrameSamples;
 #endif
 	
@@ -1346,11 +1352,13 @@ void
 RenderEffects_new(void)
 {
 	PUSH_RENDERGROUP("RenderEffects_new");
+/*	// stupid to do this before the whole world is drawn!
 	CShadows::RenderStaticShadows();
 	// CRenderer::GenerateEnvironmentMap
 	CShadows::RenderStoredShadows();
 	CSkidmarks::Render();
 	CRubbish::Render();
+*/
 
 	// these aren't really effects
 	DefinedState();
@@ -1373,6 +1381,13 @@ if(gbRenderFadingInEntities)
 	CRenderer::RenderFadingInEntities();
 
 	// actual effects here
+
+	// from above
+	CShadows::RenderStaticShadows();
+	CShadows::RenderStoredShadows();
+	CSkidmarks::Render();
+	CRubbish::Render();
+
 	CGlass::Render();
 	// CMattRenderer::ResetRenderStates
 	DefinedState();

@@ -517,8 +517,10 @@ bool LoadINISettings()
 	ReadIniIfExists("Draw", "FixSprites", &CDraw::ms_bFixSprites);	
 #endif
 #ifdef DRAW_GAME_VERSION_TEXT
-	extern bool gDrawVersionText;
-	ReadIniIfExists("General", "DrawVersionText", &gDrawVersionText);
+	ReadIniIfExists("General", "DrawVersionText", &gbDrawVersionText);
+#endif
+#ifdef NO_MOVIES
+	ReadIniIfExists("General", "NoMovies", &gbNoMovies);
 #endif
 
 #ifdef CUSTOM_FRONTEND_OPTIONS
@@ -608,8 +610,10 @@ void SaveINISettings()
 	StoreIni("Draw", "FixSprites", CDraw::ms_bFixSprites);	
 #endif
 #ifdef DRAW_GAME_VERSION_TEXT
-	extern bool gDrawVersionText;
-	StoreIni("General", "DrawVersionText", gDrawVersionText);
+	StoreIni("General", "DrawVersionText", gbDrawVersionText);
+#endif
+#ifdef NO_MOVIES
+	StoreIni("General", "NoMovies", gbNoMovies);
 #endif
 #ifdef CUSTOM_FRONTEND_OPTIONS
 	for (int i = 0; i < MENUPAGES; i++) {
@@ -960,6 +964,11 @@ extern bool gbRenderWorld2;
 		DebugMenuAddVar("Render", "Intensity", &CPostFX::Intensity, nil, 0.05f, 0, 10.0f);
 		DebugMenuAddVarBool8("Render", "Motion Blur", &CPostFX::MotionBlurOn, nil);
 #endif
+#ifdef LIBRW
+		DebugMenuAddVarBool32("Render", "MatFX env map apply light", &rw::MatFX::envMapApplyLight, nil);
+		DebugMenuAddVarBool32("Render", "MatFX env map flip U", &rw::MatFX::envMapFlipU, nil);
+		DebugMenuAddVarBool32("Render", "MatFX env map use matcolor", &rw::MatFX::envMapUseMatColor, nil);
+#endif
 #ifdef EXTENDED_PIPELINES
 		static const char *vehpipenames[] = { "MatFX", "Neo" };
 		e = DebugMenuAddVar("Render", "Vehicle Pipeline", &CustomPipes::VehiclePipeSwitch, nil,
@@ -990,14 +999,14 @@ extern bool gbRenderWorld2;
 
 		
 #ifdef DRAW_GAME_VERSION_TEXT
-		extern bool gDrawVersionText;
-		DebugMenuAddVarBool8("Debug", "Version Text", &gDrawVersionText, nil);
+		DebugMenuAddVarBool8("Debug", "Version Text", &gbDrawVersionText, nil);
 #endif
 		DebugMenuAddVarBool8("Debug", "Show DebugStuffInRelease", &gbDebugStuffInRelease, nil);
 #ifdef TIMEBARS
 		DebugMenuAddVarBool8("Debug", "Show Timebars", &gbShowTimebars, nil);
 #endif
 #ifndef FINAL
+		DebugMenuAddVarBool8("Debug", "Use debug render groups", &bDebugRenderGroups, nil);
 		DebugMenuAddVarBool8("Debug", "Print Memory Usage", &gbPrintMemoryUsage, nil);
 #ifdef USE_CUSTOM_ALLOCATOR
 		DebugMenuAddCmd("Debug", "Parse Heap", ParseHeap);

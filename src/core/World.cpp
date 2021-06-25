@@ -64,7 +64,7 @@ CWorld::Initialise()
 void
 CWorld::Add(CEntity *ent)
 {
-	if(ent->IsVehicle() || ent->IsPed()) DMAudio.SetEntityStatus(((CPhysical *)ent)->m_audioEntityId, true);
+	if(ent->IsVehicle() || ent->IsPed()) DMAudio.SetEntityStatus(((CPhysical *)ent)->m_audioEntityId, TRUE);
 
 	if(ent->bIsBIGBuilding)
 		ms_bigBuildingsList[ent->m_level].InsertItem(ent);
@@ -79,7 +79,7 @@ CWorld::Add(CEntity *ent)
 void
 CWorld::Remove(CEntity *ent)
 {
-	if(ent->IsVehicle() || ent->IsPed()) DMAudio.SetEntityStatus(((CPhysical *)ent)->m_audioEntityId, false);
+	if(ent->IsVehicle() || ent->IsPed()) DMAudio.SetEntityStatus(((CPhysical *)ent)->m_audioEntityId, FALSE);
 
 	if(ent->bIsBIGBuilding)
 		ms_bigBuildingsList[ent->m_level].RemoveItem(ent);
@@ -1445,7 +1445,7 @@ CWorld::CallOffChaseForAreaSectorListVehicles(CPtrList &list, float x1, float y1
 				CColModel *pColModel = pVehicle->GetColModel();
 				bool bInsideSphere = false;
 				for(int32 i = 0; i < pColModel->numSpheres; i++) {
-					CVector pos = pVehicle->m_matrix * pColModel->spheres[i].center;
+					CVector pos = pVehicle->GetMatrix() * pColModel->spheres[i].center;
 					float fRadius = pColModel->spheres[i].radius;
 					if(pos.x + fRadius > x1 && pos.x - fRadius < x2 && pos.y + fRadius > y1 &&
 					   pos.y - fRadius < y2)
@@ -1763,7 +1763,7 @@ CWorld::RepositionOneObject(CEntity *pEntity)
 		position.z = FindGroundZFor3DCoord(position.x, position.y,
 		                                           position.z + OBJECT_REPOSITION_OFFSET_Z, nil) -
 		             fBoundingBoxMinZ;
-		pEntity->m_matrix.UpdateRW();
+		pEntity->GetMatrix().UpdateRW();
 		pEntity->UpdateRwFrame();
 	} else if(modelId == MI_BUOY) {
 		float fWaterLevel = 0.0f;

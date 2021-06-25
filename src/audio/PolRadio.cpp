@@ -7,16 +7,13 @@
 #include "AudioSamples.h"
 #include "MusicManager.h"
 #include "PlayerPed.h"
-#include "PoliceRadio.h"
+#include "PolRadio.h"
 #include "Replay.h"
 #include "Vehicle.h"
 #include "World.h"
 #include "Zones.h"
 #include "sampman.h"
 #include "Wanted.h"
-
-const int channels = ARRAY_SIZE(AudioManager.m_asActiveSamples);
-const int policeChannel = channels + 1;
 
 struct tPoliceRadioZone {
 	char m_aName[8];
@@ -94,8 +91,8 @@ cAudioManager::InitialisePoliceRadio()
 	for (int32 i = 0; i < ARRAY_SIZE(m_sPoliceRadioQueue.crimes); i++)
 		m_sPoliceRadioQueue.crimes[i].type = CRIME_NONE;
 
-	SampleManager.SetChannelReverbFlag(policeChannel, false);
-	gSpecialSuspectLastSeenReport = false;
+	SampleManager.SetChannelReverbFlag(CHANNEL_POLICE_RADIO, FALSE);
+	gSpecialSuspectLastSeenReport = FALSE;
 	for (int32 i = 0; i < ARRAY_SIZE(gMinTimeToNextReport); i++)
 		gMinTimeToNextReport[i] = m_FrameCounter;
 }
@@ -104,7 +101,7 @@ void
 cAudioManager::ResetPoliceRadio()
 {
 	if (!m_bIsInitialised) return;
-	if (SampleManager.GetChannelUsedFlag(policeChannel)) SampleManager.StopChannel(policeChannel);
+	if (SampleManager.GetChannelUsedFlag(CHANNEL_POLICE_RADIO)) SampleManager.StopChannel(CHANNEL_POLICE_RADIO);
 	InitialisePoliceRadio();
 }
 
@@ -131,19 +128,18 @@ cAudioManager::DoPoliceRadioCrackle()
 	m_sQueueSample.m_nCounter = 0;
 	m_sQueueSample.m_nSampleIndex = SFX_POLICE_RADIO_CRACKLE;
 	m_sQueueSample.m_nBankIndex = SFX_BANK_0;
-	m_sQueueSample.m_bIs2D = true;
+	m_sQueueSample.m_bIs2D = TRUE;
 	m_sQueueSample.m_nReleasingVolumeModificator = 10;
 	m_sQueueSample.m_nFrequency = SampleManager.GetSampleBaseFrequency(SFX_POLICE_RADIO_CRACKLE);
 	m_sQueueSample.m_nVolume = m_anRandomTable[2] % 20 + 15;
 	m_sQueueSample.m_nLoopCount = 0;
 	m_sQueueSample.m_nEmittingVolume = m_sQueueSample.m_nVolume;
-	m_sQueueSample.m_nLoopStart = SampleManager.GetSampleLoopStartOffset(SFX_POLICE_RADIO_CRACKLE);
-	m_sQueueSample.m_nLoopEnd = SampleManager.GetSampleLoopEndOffset(SFX_POLICE_RADIO_CRACKLE);
-	m_sQueueSample.m_bReleasingSoundFlag = false;
-	m_sQueueSample.m_bReverbFlag = false;
+	SET_LOOP_OFFSETS(SFX_POLICE_RADIO_CRACKLE)
+	m_sQueueSample.m_bReleasingSoundFlag = FALSE;
+	m_sQueueSample.m_bReverbFlag = FALSE;
 	m_sQueueSample.m_nOffset = 63;
 	m_sQueueSample.m_nReleasingVolumeDivider = 3;
-	m_sQueueSample.m_bRequireReflection = false;
+	m_sQueueSample.m_bRequireReflection = FALSE;
 	AddSampleToRequestedQueue();
 }
 
@@ -156,7 +152,7 @@ cAudioManager::ServicePoliceRadio()
 	if(!m_bIsInitialised) return;
 
 	if(m_nUserPause == 0) {
-		bool crimeReport = SetupCrimeReport();
+		bool8 crimeReport = SetupCrimeReport();
 #ifdef FIX_BUGS // Crash at 0x5fe6ef
 		if(CReplay::IsPlayingBack() || !FindPlayerPed() || !FindPlayerPed()->m_pWanted)
 			return;
@@ -165,7 +161,11 @@ cAudioManager::ServicePoliceRadio()
 		if(!crimeReport) {
 			if(wantedLevel != 0) {
 				if(nLastSeen != 0) {
+#ifdef FIX_BUGS
+					nLastSeen -= CTimer::GetLogicalFramesPassed();
+#else
 					--nLastSeen;
+#endif
 				} else {
 					nLastSeen = m_anRandomTable[1] % 1000 + 2000;
 					SetupSuspectLastSeenReport();
@@ -179,31 +179,35 @@ cAudioManager::ServicePoliceRadio()
 void
 cAudioManager::ServicePoliceRadioChannel(uint8 wantedLevel)
 {
-	bool processed = false;
+	bool8 processed = FALSE;
 	uint32 sample;
 	int32 freq;
 
 	static int cWait = 0;
-	static bool bChannelOpen = false;
+	static bool8 bChannelOpen = FALSE;
 	static uint8 bMissionAudioPhysicalPlayingStatus = 0;
 	static int32 PoliceChannelFreq = 5500;
 
 	if (!m_bIsInitialised) return;
 
 	if (m_nUserPause != 0) {
-		if (SampleManager.GetChannelUsedFlag(policeChannel)) SampleManager.StopChannel(policeChannel);
+		if (SampleManager.GetChannelUsedFlag(CHANNEL_POLICE_RADIO)) SampleManager.StopChannel(CHANNEL_POLICE_RADIO);
 		if (g_nMissionAudioSfx != TOTAL_AUDIO_SAMPLES && bMissionAudioPhysicalPlayingStatus == 1 &&
 			SampleManager.IsStreamPlaying(1)) {
-			SampleManager.PauseStream(1, 1);
+			SampleManager.PauseStream(TRUE, 1);
 		}
 	} else {
 		if (m_nPreviousUserPause && g_nMissionAudioSfx != TOTAL_AUDIO_SAMPLES &&
 			bMissionAudioPhysicalPlayingStatus == 1) {
-			SampleManager.PauseStream(0, 1);
+			SampleManager.PauseStream(FALSE, 1);
 		}
-		if (m_sPoliceRadioQueue.policeChannelTimer == 0) bChannelOpen = false;
+		if (m_sPoliceRadioQueue.policeChannelTimer == 0) bChannelOpen = FALSE;
 		if (cWait) {
+#ifdef FIX_BUGS
+			cWait -= CTimer::GetLogicalFramesPassed();
+#else
 			--cWait;
+#endif
 			return;
 		}
 		if (g_nMissionAudioSfx != TOTAL_AUDIO_SAMPLES && !bChannelOpen) {
@@ -223,9 +227,9 @@ cAudioManager::ServicePoliceRadioChannel(uint8 wantedLevel)
 					}
 					return;
 				}
-			} else if (!SampleManager.GetChannelUsedFlag(policeChannel)) {
+			} else if (!SampleManager.GetChannelUsedFlag(CHANNEL_POLICE_RADIO)) {
 				SampleManager.PreloadStreamedFile(g_nMissionAudioSfx, 1);
-				SampleManager.SetStreamedVolumeAndPan(MAX_VOLUME, 63, 1, 1);
+				SampleManager.SetStreamedVolumeAndPan(MAX_VOLUME, 63, TRUE, 1);
 				SampleManager.StartPreloadedStreamedFile(1);
 				g_nMissionAudioPlayingStatus = 1;
 				bMissionAudioPhysicalPlayingStatus = 0;
@@ -234,7 +238,7 @@ cAudioManager::ServicePoliceRadioChannel(uint8 wantedLevel)
 		}
 		if (bChannelOpen) DoPoliceRadioCrackle();
 		if ((g_nMissionAudioSfx == TOTAL_AUDIO_SAMPLES || g_nMissionAudioPlayingStatus != 1) &&
-			!SampleManager.GetChannelUsedFlag(policeChannel) && m_sPoliceRadioQueue.policeChannelTimer) {
+			!SampleManager.GetChannelUsedFlag(CHANNEL_POLICE_RADIO) && m_sPoliceRadioQueue.policeChannelTimer) {
 			if (m_sPoliceRadioQueue.policeChannelTimer) {
 				sample = m_sPoliceRadioQueue.crimesSamples[m_sPoliceRadioQueue.policeChannelCounterSeconds];
 				m_sPoliceRadioQueue.policeChannelTimer--;
@@ -246,37 +250,37 @@ cAudioManager::ServicePoliceRadioChannel(uint8 wantedLevel)
 				if (gSpecialSuspectLastSeenReport) {
 					gSpecialSuspectLastSeenReport = 0;
 				} else if (((sample >= SFX_POLICE_RADIO_MESSAGE_NOISE_1) && (sample <= SFX_POLICE_RADIO_MESSAGE_NOISE_3)) || sample == TOTAL_AUDIO_SAMPLES) {
-					bChannelOpen = false;
-					processed = true;
+					bChannelOpen = FALSE;
+					processed = TRUE;
 				}
 			}
 			if (sample == TOTAL_AUDIO_SAMPLES) {
 				if (!processed) cWait = 30;
 			} else {
-				SampleManager.InitialiseChannel(policeChannel, sample, 0);
+				SampleManager.InitialiseChannel(CHANNEL_POLICE_RADIO, sample, SFX_BANK_0);
 				switch (sample) {
 				case SFX_POLICE_RADIO_MESSAGE_NOISE_1:
 				case SFX_POLICE_RADIO_MESSAGE_NOISE_2:
 				case SFX_POLICE_RADIO_MESSAGE_NOISE_3:
 					freq = m_anRandomTable[4] % 2000 + 10025;
-					bChannelOpen = bChannelOpen == false;
+					bChannelOpen = bChannelOpen == FALSE;
 					break;
 				default: freq = SampleManager.GetSampleBaseFrequency(sample); break;
 				}
 				PoliceChannelFreq = freq;
-				SampleManager.SetChannelFrequency(policeChannel, freq);
-				SampleManager.SetChannelVolume(policeChannel, 100);
-				SampleManager.SetChannelPan(policeChannel, 63);
-				SampleManager.SetChannelLoopCount(policeChannel, 1);
-				SampleManager.SetChannelLoopPoints(policeChannel, 0, -1);
-				SampleManager.StartChannel(policeChannel);
+				SampleManager.SetChannelFrequency(CHANNEL_POLICE_RADIO, freq);
+				SampleManager.SetChannelVolume(CHANNEL_POLICE_RADIO, 100);
+				SampleManager.SetChannelPan(CHANNEL_POLICE_RADIO, 63);
+				SampleManager.SetChannelLoopCount(CHANNEL_POLICE_RADIO, 1);
+				SampleManager.SetChannelLoopPoints(CHANNEL_POLICE_RADIO, 0, -1);
+				SampleManager.StartChannel(CHANNEL_POLICE_RADIO);
 			}
 			if (processed) ResetPoliceRadio();
 		}
 	}
 }
 
-bool
+bool8
 cAudioManager::SetupCrimeReport()
 {
 	int16 audioZoneId;
@@ -289,13 +293,13 @@ cAudioManager::SetupCrimeReport()
 	float quarterY;
 	int i;
 	int32 sampleIndex;
-	bool processed = false;
+	bool8 processed = FALSE;
 
-	if (MusicManager.m_nMusicMode == MUSICMODE_CUTSCENE) return false;
+	if (MusicManager.m_nMusicMode == MUSICMODE_CUTSCENE) return FALSE;
 
 	if (60 - m_sPoliceRadioQueue.policeChannelTimer <= 9) {
 		AgeCrimes();
-		return true;
+		return TRUE;
 	}
 
 	for (i = 0; i < ARRAY_SIZE(m_sPoliceRadioQueue.crimes); i++) {
@@ -303,7 +307,7 @@ cAudioManager::SetupCrimeReport()
 			break;
 	}
 
-	if (i == ARRAY_SIZE(m_sPoliceRadioQueue.crimes)) return false;
+	if (i == ARRAY_SIZE(m_sPoliceRadioQueue.crimes)) return FALSE;
 	audioZoneId = CTheZones::FindAudioZone(&m_sPoliceRadioQueue.crimes[i].position);
 	if (audioZoneId >= 0 && audioZoneId < NUMAUDIOZONES) {
 		zone = CTheZones::GetAudioZone(audioZoneId);
@@ -336,10 +340,10 @@ cAudioManager::SetupCrimeReport()
 
 					if (m_sPoliceRadioQueue.crimes[i].position.y > halfY + quarterY) {
 						m_sPoliceRadioQueue.Add(SFX_NORTH);
-						processed = true;
+						processed = TRUE;
 					} else if (m_sPoliceRadioQueue.crimes[i].position.y < halfY - quarterY) {
 						m_sPoliceRadioQueue.Add(SFX_SOUTH);
-						processed = true;
+						processed = TRUE;
 					}
 
 					if (m_sPoliceRadioQueue.crimes[i].position.x > halfX + quarterX)
@@ -359,7 +363,7 @@ cAudioManager::SetupCrimeReport()
 	}
 	m_sPoliceRadioQueue.crimes[i].type = CRIME_NONE;
 	AgeCrimes();
-	return true;
+	return TRUE;
 }
 
 void
@@ -714,7 +718,7 @@ cAudioManager::PlaySuspectLastSeen(float x, float y, float z)
 	float quarterX;
 	float quarterY;
 	int32 sample;
-	bool processed = false;
+	bool8 processed = false;
 	CVector vec = CVector(x, y, z);
 
 	if (!m_bIsInitialised) return;
@@ -745,10 +749,10 @@ cAudioManager::PlaySuspectLastSeen(float x, float y, float z)
 
 						if (vec.y > halfY + quarterY) {
 							m_sPoliceRadioQueue.Add(SFX_NORTH);
-							processed = true;
+							processed = TRUE;
 						} else if (vec.y < halfY - quarterY) {
 							m_sPoliceRadioQueue.Add(SFX_SOUTH);
-							processed = true;
+							processed = TRUE;
 						}
 
 						if (vec.x > halfX + quarterX)
@@ -761,7 +765,7 @@ cAudioManager::PlaySuspectLastSeen(float x, float y, float z)
 					m_sPoliceRadioQueue.Add(sample);
 					m_sPoliceRadioQueue.Add(m_anRandomTable[2] % 3 + SFX_POLICE_RADIO_MESSAGE_NOISE_1);
 					m_sPoliceRadioQueue.Add(TOTAL_AUDIO_SAMPLES);
-					gSpecialSuspectLastSeenReport = true;
+					gSpecialSuspectLastSeenReport = TRUE;
 					break;
 				}
 			}

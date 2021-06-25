@@ -45,6 +45,7 @@
 #include "Object.h"
 #include "Automobile.h"
 #include "Wanted.h"
+#include "SaveBuf.h"
 
 bool bAllCarCheat;	// unused
 
@@ -333,7 +334,11 @@ CAutomobile::ProcessControl(void)
 	bool playerRemote = false;
 	switch(GetStatus()){
 	case STATUS_PLAYER_REMOTE:
-		if(CPad::GetPad(0)->WeaponJustDown()){
+#ifdef FIX_BUGS
+		if (CPad::GetPad(0)->CarGunJustDown()) {
+#else
+		if (CPad::GetPad(0)->WeaponJustDown()) {
+#endif
 			BlowUpCar(FindPlayerPed());
 			CRemote::TakeRemoteControlledCarFromPlayer();
 		}
@@ -2372,7 +2377,11 @@ void
 CAutomobile::FireTruckControl(void)
 {
 	if(this == FindPlayerVehicle()){
-		if(!CPad::GetPad(0)->GetWeapon())
+#ifdef FIX_BUGS
+		if (!CPad::GetPad(0)->GetCarGunFired())
+#else
+		if (!CPad::GetPad(0)->GetWeapon())
+#endif // FIX_BUGS
 			return;
 #ifdef FREE_CAM
 		if (!CCamera::bFreeCam)
@@ -3054,7 +3063,7 @@ CAutomobile::DoDriveByShootings(void)
 			lookingLeft = true;
 		if(TheCamera.Cams[TheCamera.ActiveCam].LookingRight)
 			lookingRight = true;
-	}
+		}
 
 	if(lookingLeft || lookingRight){
 		if(lookingLeft){
@@ -4042,7 +4051,7 @@ CAutomobile::GetHeightAboveRoad(void)
 void
 CAutomobile::PlayCarHorn(void)
 {
-	int r;
+	uint32 r;
 
 	if(m_nCarHornTimer != 0)
 		return;
@@ -4716,7 +4725,7 @@ void
 CAutomobile::Load(uint8*& buf)
 {
 	CVehicle::Load(buf);
-	Damage = ReadSaveBuf<CDamageManager>(buf);
+	ReadSaveBuf(&Damage, buf);
 	SkipSaveBuf(buf, 800 - sizeof(CDamageManager));
 	SetupDamageAfterLoad();
 }

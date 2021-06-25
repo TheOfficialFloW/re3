@@ -706,8 +706,7 @@ CPopulation::AddToPopulation(float minDist, float maxDist, float minDistOffScree
 				generatedCoors.z = Max(generatedCoors.z, groundZ);
 			}
 			bool farEnoughToAdd = true;
-			CMatrix mat(TheCamera.GetCameraMatrix());
-			if (TheCamera.IsSphereVisible(generatedCoors, 2.0f, &mat)) {
+			if (TheCamera.IsSphereVisible(generatedCoors, 2.0f)) {
 				if (PedCreationDistMultiplier() * MIN_CREATION_DIST > (generatedCoors - playerCentreOfWorld).Magnitude2D())
 					farEnoughToAdd = false;
 			}
@@ -945,10 +944,9 @@ CPopulation::MoveCarsAndPedsOutOfAbandonedZones()
 void
 CPopulation::ConvertAllObjectsToDummyObjects()
 {
-	int poolSize = CPools::GetObjectPool()->GetSize();
-	for (int poolIndex = poolSize - 1; poolIndex >= 0; poolIndex--) {
-
-		CObject *obj = CPools::GetObjectPool()->GetSlot(poolIndex);
+	uint32 i = CPools::GetObjectPool()->GetSize();
+	while(i--) {
+		CObject *obj = CPools::GetObjectPool()->GetSlot(i);
 		if (obj) {
 			if (obj->CanBeDeleted())
 				ConvertToDummyObject(obj);
@@ -1012,26 +1010,29 @@ CPopulation::TestSafeForRealObject(CDummyObject *dummy)
 {
 	CPtrNode *ptrNode;
 	CColModel *dummyCol = dummy->GetColModel();
-	float colRadius = dummy->GetBoundRadius();
-	CVector colCentre = dummy->GetBoundCentre();
 
-	int minX = CWorld::GetSectorIndexX(dummy->GetPosition().x - colRadius);
+	float radius = dummyCol->boundingSphere.radius;
+	int minX = CWorld::GetSectorIndexX(dummy->GetPosition().x - radius);
 	if (minX < 0) minX = 0;
-	int minY = CWorld::GetSectorIndexY(dummy->GetPosition().y - colRadius);
+	int minY = CWorld::GetSectorIndexY(dummy->GetPosition().y - radius);
 	if (minY < 0) minY = 0;
-	int maxX = CWorld::GetSectorIndexX(dummy->GetPosition().x + colRadius);
+	int maxX = CWorld::GetSectorIndexX(dummy->GetPosition().x + radius);
 #ifdef FIX_BUGS
 	if (maxX >= NUMSECTORS_X) maxX = NUMSECTORS_X - 1;
 #else
 	if (maxX >= NUMSECTORS_X) maxX = NUMSECTORS_X;
 #endif
 
-	int maxY = CWorld::GetSectorIndexY(dummy->GetPosition().y + colRadius);
+	int maxY = CWorld::GetSectorIndexY(dummy->GetPosition().y + radius);
 #ifdef FIX_BUGS
 	if (maxY >= NUMSECTORS_Y) maxY = NUMSECTORS_Y - 1;
 #else
 	if (maxY >= NUMSECTORS_Y) maxY = NUMSECTORS_Y;
 #endif
+
+	float colRadius = dummy->GetBoundRadius();
+	CVUVECTOR colCentre;
+	dummy->GetBoundCentre(colCentre);
 
 	static CColPoint aTempColPoints[MAX_COLLISION_POINTS];
 

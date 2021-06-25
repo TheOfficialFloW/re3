@@ -32,6 +32,7 @@
 #include "Floater.h"
 #include "Range2D.h"
 #include "Wanted.h"
+#include "SaveBuf.h"
 
 CPed *gapTempPedList[50];
 uint16 gnNumTempPedList;
@@ -244,7 +245,7 @@ CPed::CPed(uint32 pedType) : m_pedIK(this)
 		bHasACamera = true;
 
 	m_audioEntityId = DMAudio.CreateEntity(AUDIOTYPE_PHYSICAL, this);
-	DMAudio.SetEntityStatus(m_audioEntityId, true);
+	DMAudio.SetEntityStatus(m_audioEntityId, TRUE);
 	m_fearFlags = CPedType::GetThreats(m_nPedType);
 	m_threatEntity = nil;
 	m_eventOrThreat = CVector2D(0.0f, 0.0f);
@@ -2501,7 +2502,7 @@ CPed::ProcessControl(void)
 						if (m_nPedState == PED_JUMP) {
 							if (m_nWaitTimer <= 2000) {
 								if (m_nWaitTimer < 1000)
-									m_nWaitTimer += CTimer::GetTimeStep() * 0.02f * 1000.0f;
+									m_nWaitTimer += CTimer::GetTimeStepInMilliseconds();
 							} else {
 								m_nWaitTimer = 0;
 							}
@@ -6983,14 +6984,21 @@ CPed::SetPedPositionInCar(void)
 	} else {
 		m_fRotationCur = m_pMyVehicle->GetForward().Heading();
 	}
-	GetMatrix() = newMat;
+	SetMatrix(newMat);
 }
 
 void
 CPed::LookForSexyPeds(void)
 {
 	if ((!IsPedInControl() && m_nPedState != PED_DRIVING)
-		|| m_lookTimer >= CTimer::GetTimeInMilliseconds() || m_nPedType != PEDTYPE_CIVMALE)
+		|| m_lookTimer >= CTimer::GetTimeInMilliseconds() ||
+#ifdef FIX_BUGS
+		// gang members have these lines too
+		(!IsGangMember() && m_nPedType != PEDTYPE_CIVMALE)
+#else
+		m_nPedType != PEDTYPE_CIVMALE
+#endif
+		)
 		return;
 
 	for (int i = 0; i < m_numNearPeds; i++) {
@@ -6998,7 +7006,12 @@ CPed::LookForSexyPeds(void)
 			if ((GetPosition() - m_nearPeds[i]->GetPosition()).Magnitude() < 10.0f) {
 				CPed *nearPed = m_nearPeds[i];
 				if ((nearPed->m_pedStats->m_sexiness > m_pedStats->m_sexiness)
+#ifdef FIX_BUGS
+					// react to prostitutes as well
+					&& ((nearPed->m_nPedType == PEDTYPE_CIVFEMALE) || (nearPed->m_nPedType == PEDTYPE_PROSTITUTE))) {
+#else
 					&& nearPed->m_nPedType == PEDTYPE_CIVFEMALE) {
+#endif
 
 					SetLookFlag(nearPed, true);
 					m_lookTimer = CTimer::GetTimeInMilliseconds() + 4000;

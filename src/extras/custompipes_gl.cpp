@@ -154,7 +154,7 @@ CreateVehiclePipe(void)
 	{
 #include "shaders/obj/neoVehicle_frag.inc"
 #include "shaders/obj/neoVehicle_vert.inc"
-	const char *vs[] = { shaderDecl, header_vert_src, neoVehicle_vert_src, nil };
+	const char *vs[] = { shaderDecl, "#define DIRECTIONALS\n", header_vert_src, neoVehicle_vert_src, nil };
 	const char *fs[] = { shaderDecl, header_frag_src, neoVehicle_frag_src, nil };
 	neoVehicleShader = Shader::create(vs, fs);
 	assert(neoVehicleShader);
@@ -515,7 +515,7 @@ CreateRimLightPipes(void)
 	{
 #include "shaders/obj/simple_frag.inc"
 #include "shaders/obj/neoRimSkin_vert.inc"
-	const char *vs[] = { shaderDecl, header_vert_src, neoRimSkin_vert_src, nil };
+	const char *vs[] = { shaderDecl, "#define DIRECTIONALS\n", header_vert_src, neoRimSkin_vert_src, nil };
 	const char *fs[] = { shaderDecl, header_frag_src, simple_frag_src, nil };
 	neoRimSkinShader = Shader::create(vs, fs);
 	assert(neoRimSkinShader);
@@ -524,7 +524,7 @@ CreateRimLightPipes(void)
 	{
 #include "shaders/obj/simple_frag.inc"
 #include "shaders/obj/neoRim_vert.inc"
-	const char *vs[] = { shaderDecl, header_vert_src, neoRim_vert_src, nil };
+	const char *vs[] = { shaderDecl, "#define DIRECTIONALS\n", header_vert_src, neoRim_vert_src, nil };
 	const char *fs[] = { shaderDecl, header_frag_src, simple_frag_src, nil };
 	neoRimShader = Shader::create(vs, fs);
 	assert(neoRimShader);
@@ -595,6 +595,7 @@ struct BuildingInst
 {
 	rw::Matrix matrix;
 	rw::gl3::InstanceDataHeader *instHeader;
+	uint32 cullMode;
 	uint8 fadeAlpha;
 	bool lighting;
 };
@@ -627,6 +628,7 @@ AtomicFirstPass(RpAtomic *atomic, int pass)
 	assert(building->instHeader->platform == PLATFORM_GL3);
 	building->fadeAlpha = 255;
 	building->lighting = !!(atomic->geometry->flags & rw::Geometry::LIGHT);
+	building->cullMode = rw::GetRenderState(rw::CULLMODE);
 	rw::uint32 flags = atomic->geometry->flags;
 
 	WorldLights lights;
@@ -654,6 +656,7 @@ AtomicFirstPass(RpAtomic *atomic, int pass)
 
 		// alright we're rendering this atomic
 		if(!setupDone){
+			rw::SetRenderState(rw::CULLMODE, building->cullMode);
 			defaultShader->use();
 			setWorldMatrix(&building->matrix);
 			setupVertexInput(building->instHeader);
@@ -686,6 +689,7 @@ AtomicFullyTransparent(RpAtomic *atomic, int pass, int fadeAlpha)
 	assert(building->instHeader->platform == PLATFORM_GL3);
 	building->fadeAlpha = fadeAlpha;
 	building->lighting = !!(atomic->geometry->flags & rw::Geometry::LIGHT);
+	building->cullMode = rw::GetRenderState(rw::CULLMODE);
 	building->matrix = *atomic->getFrame()->getLTM();
 	numBlendInsts[pass]++;
 }
@@ -706,6 +710,7 @@ RenderBlendPass(int pass)
 	for(i = 0; i < numBlendInsts[pass]; i++){
 		BuildingInst *building = &blendInsts[pass][i];
 
+		rw::SetRenderState(rw::CULLMODE, building->cullMode);
 		setupVertexInput(building->instHeader);
 		setWorldMatrix(&building->matrix);
 		if(building->lighting)

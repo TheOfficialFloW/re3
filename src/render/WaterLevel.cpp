@@ -432,14 +432,14 @@ CWaterLevel::TestVisibilityForFineWaterBlocks(const CVector &worldPos)
 
 		if ((lineEnd.x > WORLD_MIN_X && lineEnd.x < WORLD_MAX_X) && (lineEnd.y > WORLD_MIN_Y && lineEnd.y < WORLD_MAX_Y))
 		{
-			if (!CWorld::ProcessLineOfSight(lineStart, lineEnd, col, entity, true, false, false, false, true, false, nil))
+			if (!CWorld::ProcessLineOfSight(lineStart, lineEnd, col, entity, true, false, false, false, true, false))
 			{
 				lineStart.x += 0.4f;
 				lineStart.y += 0.4f;
 				lineEnd.x += 0.4f;
 				lineEnd.y += 0.4f;
 
-				if (!CWorld::ProcessLineOfSight(lineStart, lineEnd, col, entity, true, false, false, false, true, false, nil))
+				if (!CWorld::ProcessLineOfSight(lineStart, lineEnd, col, entity, true, false, false, false, true, false))
 				{
 					return false;
 				}
@@ -740,8 +740,7 @@ CWaterLevel::RenderWater()
 
 				if ( fHugeSectorMaxRenderDistSqr > fHugeSectorDistToCamSqr )
 				{
-					if ( TheCamera.IsSphereVisible(CVector(vecHugeSectorCentre.x, vecHugeSectorCentre.y, 0.0f), SectorRadius(HUGE_SECTOR_SIZE),
-							&TheCamera.GetCameraMatrix()) )
+					if ( TheCamera.IsSphereVisible(CVector(vecHugeSectorCentre.x, vecHugeSectorCentre.y, 0.0f), SectorRadius(HUGE_SECTOR_SIZE)) )
 					{
 						if ( fHugeSectorDistToCamSqr >= SQR(500.0f) /*fHugeSectorNearDist*/ )
 						{
@@ -782,8 +781,7 @@ CWaterLevel::RenderWater()
 										
 										if ( fLargeSectorDistToCamSqr < fHugeSectorMaxRenderDistSqr )
 										{
-											if ( TheCamera.IsSphereVisible(CVector(vecLargeSectorCentre.x, vecLargeSectorCentre.y, 0.0f), SectorRadius(LARGE_SECTOR_SIZE), //90.879997f,
-												&TheCamera.GetCameraMatrix()) )
+											if ( TheCamera.IsSphereVisible(CVector(vecLargeSectorCentre.x, vecLargeSectorCentre.y, 0.0f), SectorRadius(LARGE_SECTOR_SIZE)) ) //90.879997f,
 											{
 												// Render four small(32x32) sectors, or one large(64x64).
 
@@ -945,8 +943,7 @@ CWaterLevel::RenderWater()
 				
 				if ( fCamDistToSector < fHugeSectorMaxRenderDistSqr )
 				{
-					if ( TheCamera.IsSphereVisible(CVector(vecExtraHugeSectorCentre.x, vecExtraHugeSectorCentre.y, 0.0f), SectorRadius(EXTRAHUGE_SECTOR_SIZE),
-							&TheCamera.GetCameraMatrix()) )
+					if ( TheCamera.IsSphereVisible(CVector(vecExtraHugeSectorCentre.x, vecExtraHugeSectorCentre.y, 0.0f), SectorRadius(EXTRAHUGE_SECTOR_SIZE)) )
 					{
 						RenderOneFlatExtraHugeWaterPoly(
 							vecExtraHugeSectorCentre.x - EXTRAHUGE_SECTOR_SIZE/2,
@@ -979,8 +976,7 @@ CWaterLevel::RenderWater()
 				
 				if ( fCamDistToSector < fHugeSectorMaxRenderDistSqr )
 				{
-					if ( TheCamera.IsSphereVisible(CVector(vecExtraHugeSectorCentre.x, vecExtraHugeSectorCentre.y, 0.0f), SectorRadius(EXTRAHUGE_SECTOR_SIZE),
-							&TheCamera.GetCameraMatrix()) )
+					if ( TheCamera.IsSphereVisible(CVector(vecExtraHugeSectorCentre.x, vecExtraHugeSectorCentre.y, 0.0f), SectorRadius(EXTRAHUGE_SECTOR_SIZE)) )
 					{
 						RenderOneFlatExtraHugeWaterPoly(
 							vecExtraHugeSectorCentre.x - EXTRAHUGE_SECTOR_SIZE/2,
@@ -1003,8 +999,7 @@ CWaterLevel::RenderWater()
 				
 				if ( fCamDistToSector < fHugeSectorMaxRenderDistSqr )
 				{
-					if ( TheCamera.IsSphereVisible(CVector(vecExtraHugeSectorCentre.x, vecExtraHugeSectorCentre.y, 0.0f), SectorRadius(EXTRAHUGE_SECTOR_SIZE),
-							&TheCamera.GetCameraMatrix()) )
+					if ( TheCamera.IsSphereVisible(CVector(vecExtraHugeSectorCentre.x, vecExtraHugeSectorCentre.y, 0.0f), SectorRadius(EXTRAHUGE_SECTOR_SIZE)) )
 					{
 						RenderOneFlatExtraHugeWaterPoly(
 							vecExtraHugeSectorCentre.x - EXTRAHUGE_SECTOR_SIZE/2,

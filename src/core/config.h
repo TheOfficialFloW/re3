@@ -128,7 +128,6 @@ enum Config {
 	NUM_PED_COMMENTS_SLOTS = 20,
 
 	NUM_SOUNDS_SAMPLES_BANKS = 2,
-	NUM_SOUNDS_SAMPLES_SLOTS = 27,
 	NUM_AUDIOENTITIES = 200,
 
 	NUM_AUDIO_REFLECTIONS = 5,
@@ -185,7 +184,8 @@ enum Config {
 #define DRAW_GAME_VERSION_TEXT
 #ifdef DRAW_GAME_VERSION_TEXT
 	// unlike R* development builds, ours has runtime switch on debug menu & .ini, and disabled as default.
-	#define USE_OUR_VERSIONING // If you disable this then game will fetch version from peds.col, as R* did while in development
+	// If you disable this then game will fetch version from peds.col, as R* did while in development.
+	//#define USE_OUR_VERSIONING // enabled from buildfiles by default
 #endif
 //#define DRAW_MENU_VERSION_TEXT
 
@@ -223,7 +223,6 @@ enum Config {
 	// not in master builds
 	#define VALIDATE_SAVE_SIZE
 
-	#define NO_MOVIES	// disable intro videos
 	#define DEBUGMENU
 #endif
 
@@ -240,6 +239,8 @@ enum Config {
 #define MORE_LANGUAGES		// Add more translations to the game
 #define COMPATIBLE_SAVES // this allows changing structs while keeping saves compatible
 #define LOAD_INI_SETTINGS // as the name suggests. fundamental for CUSTOM_FRONTEND_OPTIONS
+
+#define NO_MOVIES	// add option to disable intro videos
 
 #if defined(__LP64__) || defined(_WIN64)
 #define FIX_BUGS_64 // Must have fixes to be able to run 64 bit build
@@ -394,6 +395,7 @@ enum Config {
 // Audio
 #define RADIO_SCROLL_TO_PREV_STATION
 #define AUDIO_CACHE
+#define PS2_AUDIO_CHANNELS // increases the maximum number of audio channels to PS2 value of 44 (PC has 28 originally)
 //#define PS2_AUDIO_PATHS // changes audio paths for cutscenes and radio to PS2 paths (needs vbdec on MSS builds)
 //#define AUDIO_OAL_USE_SNDFILE // use libsndfile to decode WAVs instead of our internal decoder
 #define AUDIO_OAL_USE_MPG123 // use mpg123 to support mp3 files
@@ -428,6 +430,7 @@ enum Config {
 #ifdef SQUEEZE_PERFORMANCE
 //	#undef PS2_ALPHA_TEST
 	#undef NO_ISLAND_LOADING
+	#undef PS2_AUDIO_CHANNELS
 	#define PC_PARTICLE
 	#define VC_PED_PORTS // To not process collisions always. But should be tested if that's really beneficial
 	#define VC_RAIN_NERF // Reduces number of rain particles
@@ -520,4 +523,5 @@ enum Config {
 #undef FREE_CAM
 #undef RADIO_SCROLL_TO_PREV_STATION
 #undef BIG_IMG
+#undef PS2_AUDIO_CHANNELS
 #endif

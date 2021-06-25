@@ -1,5 +1,6 @@
 #pragma once
 #include "AudioSamples.h"
+#include "audio_enums.h"
 
 #define MAX_VOLUME 127
 #define MAX_FREQ DIGITALRATE
@@ -99,10 +100,9 @@ enum
 
 #define MAXPROVIDERS               64
 
-#define MAXCHANNELS                28
-#define MAXCHANNELS_SURROUND       24
+#define MAXCHANNELS                (NUM_CHANNELS_GENERIC+1)
+#define MAXCHANNELS_SURROUND       (MAXCHANNELS-4)
 #define MAX2DCHANNELS              1
-#define CHANNEL2D                  MAXCHANNELS
 
 #define MAX_STREAMS                2
 
@@ -114,7 +114,13 @@ enum
 #define DIGITALBITS                16
 #define DIGITALCHANNELS            2
 
-#define MAX_DIGITAL_MIXER_CHANNELS 32
+#ifdef FIX_BUGS
+#define MAX_DIGITAL_MIXER_CHANNELS (MAXCHANNELS+MAX_STREAMS*2+MAX2DCHANNELS)
+#else
+#define MAX_DIGITAL_MIXER_CHANNELS (MAXCHANNELS+MAX_STREAMS*2)
+#endif
+
+static_assert( NUM_CHANNELS == MAXCHANNELS + MAX2DCHANNELS, "The number of channels doesn't match with an enum" );
 
 class cSampleManager
 {
@@ -122,10 +128,10 @@ class cSampleManager
 	uint8   m_nMusicVolume;
 	uint8   m_nEffectsFadeVolume;
 	uint8   m_nMusicFadeVolume;
-	uint8   m_nMonoMode;
+	bool8   m_nMonoMode;
 	char	unk;
 	char    m_szCDRomRootPath[80];
-	bool    m_bInitialised;
+	bool8   m_bInitialised;
 	uint8   m_nNumberOfProviders;
 	char   *m_aAudioProviders[MAXPROVIDERS];
 	tSample m_aSamples[TOTAL_AUDIO_SAMPLES];
@@ -149,16 +155,16 @@ public:
 	int8 GetCurrent3DProviderIndex(void);
 	int8 SetCurrent3DProvider(uint8 which);
 	
-	bool IsMP3RadioChannelAvailable(void);
+	bool8 IsMP3RadioChannelAvailable(void);
 	
 	void ReleaseDigitalHandle  (void);
 	void ReacquireDigitalHandle(void);
 	
-	bool Initialise(void);
-	void Terminate (void);
+	bool8 Initialise(void);
+	void  Terminate (void);
 		
-	bool CheckForAnAudioFileOnCD(void);
-	char GetCDAudioDriveLetter  (void);
+	bool8 CheckForAnAudioFileOnCD(void);
+	char  GetCDAudioDriveLetter  (void);
 	
 	void UpdateEffectsVolume(void);
 
@@ -166,14 +172,14 @@ public:
 	void SetMusicMasterVolume  (uint8 nVolume);
 	void SetEffectsFadeVolume  (uint8 nVolume);
 	void SetMusicFadeVolume    (uint8 nVolume);
-	void SetMonoMode           (uint8 nMode);
+	void SetMonoMode           (bool8 nMode);
 	
-	bool LoadSampleBank    (uint8 nBank);
-	void UnloadSampleBank  (uint8 nBank);
-	bool IsSampleBankLoaded(uint8 nBank);
+	bool8 LoadSampleBank    (uint8 nBank);
+	void  UnloadSampleBank  (uint8 nBank);
+	bool8 IsSampleBankLoaded(uint8 nBank);
 	
-	bool IsPedCommentLoaded(uint32 nComment);
-	bool LoadPedComment    (uint32 nComment);
+	bool8 IsPedCommentLoaded(uint32 nComment);
+	bool8 LoadPedComment    (uint32 nComment);
 	int32 GetBankContainingSound(uint32 offset);
 
 	int32 _GetPedCommentSlot(uint32 nComment);
@@ -183,10 +189,10 @@ public:
 	int32  GetSampleLoopEndOffset  (uint32 nSample);
 	uint32 GetSampleLength         (uint32 nSample);
 	
-	bool  UpdateReverb(void);
+	bool8 UpdateReverb(void);
 	
-	void  SetChannelReverbFlag    (uint32 nChannel, uint8 nReverbFlag);
-	bool  InitialiseChannel       (uint32 nChannel, uint32 nSfx, uint8 nBank);
+	void  SetChannelReverbFlag    (uint32 nChannel, bool8 nReverbFlag);
+	bool8 InitialiseChannel       (uint32 nChannel, uint32 nSfx, uint8 nBank);
 	void  SetChannelEmittingVolume(uint32 nChannel, uint32 nVolume);
 	void  SetChannel3DPosition    (uint32 nChannel, float fX, float fY, float fZ);
 	void  SetChannel3DDistances   (uint32 nChannel, float fMax, float fMin);
@@ -195,23 +201,23 @@ public:
 	void  SetChannelFrequency     (uint32 nChannel, uint32 nFreq);
 	void  SetChannelLoopPoints    (uint32 nChannel, uint32 nLoopStart, int32 nLoopEnd);
 	void  SetChannelLoopCount     (uint32 nChannel, uint32 nLoopCount);
-	bool  GetChannelUsedFlag      (uint32 nChannel);
+	bool8 GetChannelUsedFlag      (uint32 nChannel);
 	void  StartChannel            (uint32 nChannel);
 	void  StopChannel             (uint32 nChannel);
 	
-	void  PreloadStreamedFile                                     (uint8 nFile, uint8 nStream);
-	void  PauseStream                                        (uint8 nPauseFlag, uint8 nStream);
-	void  StartPreloadedStreamedFile                                           (uint8 nStream);
-	bool  StartStreamedFile                          (uint8 nFile, uint32 nPos, uint8 nStream);
-	void  StopStreamedFile                                                     (uint8 nStream);
-	int32 GetStreamedFilePosition                                              (uint8 nStream);
-	void  SetStreamedVolumeAndPan(uint8 nVolume, uint8 nPan, uint8 nEffectFlag, uint8 nStream);
-	int32 GetStreamedFileLength                                                (uint8 nStream);
-	bool  IsStreamPlaying                                                      (uint8 nStream);
+	void  PreloadStreamedFile                                     (uint8 nFile, uint8 nStream = 0);
+	void  PauseStream                                        (bool8 nPauseFlag, uint8 nStream = 0);
+	void  StartPreloadedStreamedFile                                           (uint8 nStream = 0);
+	bool8 StartStreamedFile                          (uint8 nFile, uint32 nPos, uint8 nStream = 0);
+	void  StopStreamedFile                                                     (uint8 nStream = 0);
+	int32 GetStreamedFilePosition                                              (uint8 nStream = 0);
+	void  SetStreamedVolumeAndPan(uint8 nVolume, uint8 nPan, bool8 nEffectFlag, uint8 nStream = 0);
+	int32 GetStreamedFileLength                                                (uint8 nStream = 0);
+	bool8 IsStreamPlaying                                                      (uint8 nStream = 0);
 #ifdef AUDIO_OAL
 	void  Service(void);
 #endif
-	bool  InitialiseSampleBanks(void);
+	bool8 InitialiseSampleBanks(void);
 };
 
 extern cSampleManager SampleManager;

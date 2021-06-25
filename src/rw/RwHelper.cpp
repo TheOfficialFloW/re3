@@ -6,11 +6,13 @@
 #include "Timecycle.h"
 #include "skeleton.h"
 #include "Debug.h"
+#include "MBlur.h"
 #if !defined(FINAL) || defined(DEBUGMENU)
 #include "rtcharse.h"
 #endif
 #ifndef FINAL
 RtCharset *debugCharset;
+bool bDebugRenderGroups;
 #endif
 
 #ifdef PS2_ALPHA_TEST
@@ -117,6 +119,8 @@ SetCullMode(uint32 mode)
 void
 PushRendergroup(const char *name)
 {
+	if(!bDebugRenderGroups)
+		return;
 #if defined(RW_OPENGL)
 	if(GLAD_GL_KHR_debug)
 		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, name);
@@ -130,6 +134,8 @@ PushRendergroup(const char *name)
 void
 PopRendergroup(void)
 {
+	if(!bDebugRenderGroups)
+		return;
 #if defined(RW_OPENGL)
 	if(GLAD_GL_KHR_debug)
 		glPopDebugGroup();
@@ -492,6 +498,12 @@ CameraSize(RwCamera * camera, RwRect * rect,
 
 			raster->width = zRaster->width = rect->w;
 			raster->height = zRaster->height = rect->h;
+#endif
+#ifdef FIX_BUGS
+			if(CMBlur::BlurOn){
+				CMBlur::MotionBlurClose();
+				CMBlur::MotionBlurOpen(camera);
+			}
 #endif
 		}
 

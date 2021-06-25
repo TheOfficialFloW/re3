@@ -30,7 +30,7 @@ https://samilops2.gitbook.io/vita-troubleshooting-guide/grand-theft-auto/gta-iii
 ## Original README
 
 [![Build Status](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2FGTAmodding%2Fre3%2Fbadge%3Fref%3Dmaster&style=flat)](https://actions-badge.atrox.dev/GTAmodding/re3/goto?ref=master)
-<a href="https://discord.gg/aKYAwCx92H"><img src="https://img.shields.io/badge/discord-join-7289DA.svg?logo=discord&longCache=true&style=flat" /></a>
+<a href="https://discord.gg/RFNbjsUMGg"><img src="https://img.shields.io/badge/discord-join-7289DA.svg?logo=discord&longCache=true&style=flat" /></a>
 
 ## Intro
 
@@ -49,11 +49,76 @@ such that we have a working game at all times.
 
 (Put content of selected archive into gamedir)
 
-- [MacOS 64bit](https://nightly.link/GTAmodding/re3/workflows/build-cmake-conan/master/macos-latest-gl3.zip)
-- [Linux 64bit](https://nightly.link/GTAmodding/re3/workflows/build-cmake-conan/master/ubuntu-latest-gl3.zip)
-- [Windows D3D9 64bit](https://nightly.link/GTAmodding/re3/workflows/build-cmake-conan/master/windows-latest-d3d9.zip)
-- [Windows OpenGL 64bit](https://nightly.link/GTAmodding/re3/workflows/build-cmake-conan/master/windows-latest-gl3.zip)
-- [Windows D3D9 MSS 32bit](https://nightly.link/GTAmodding/re3/workflows/re3_msvc_x86/master/re3_Release_win-x86-librw_d3d9-mss.zip)
+- re3 requires PC game assets to work, so you **must** own [a copy of GTA III](https://store.steampowered.com/app/12100/Grand_Theft_Auto_III/).
+- Build re3 or download the latest build:
+  - [Windows D3D9 MSS 32bit](https://nightly.link/GTAmodding/re3/workflows/re3_msvc_x86/master/re3_Release_win-x86-librw_d3d9-mss.zip)
+  - [Windows D3D9 64bit](https://nightly.link/GTAmodding/re3/workflows/re3_msvc_amd64/master/re3_Release_win-amd64-librw_d3d9-oal.zip)
+  - [Windows OpenGL 64bit](https://nightly.link/GTAmodding/re3/workflows/re3_msvc_amd64/master/re3_Release_win-amd64-librw_gl3_glfw-oal.zip)
+  - [Linux 64bit](https://nightly.link/GTAmodding/re3/workflows/build-cmake-conan/master/ubuntu-latest-gl3.zip)
+  - [MacOS 64bit](https://nightly.link/GTAmodding/re3/workflows/build-cmake-conan/master/macos-latest-gl3.zip)
+- Extract the downloaded zip over your GTA 3 directory and run re3. The zip includes the gamefiles and in case of OpenAL the required dlls.
+
+## Screenshots
+
+![re3 2021-02-11 22-57-03-23](https://user-images.githubusercontent.com/1521437/107704085-fbdabd00-6cbc-11eb-8406-8951a80ccb16.png)
+![re3 2021-02-11 22-43-44-98](https://user-images.githubusercontent.com/1521437/107703339-cbdeea00-6cbb-11eb-8f0b-07daa105d470.png)
+![re3 2021-02-11 22-46-33-76](https://user-images.githubusercontent.com/1521437/107703343-cd101700-6cbb-11eb-9ccd-012cb90524b7.png)
+![re3 2021-02-11 22-50-29-54](https://user-images.githubusercontent.com/1521437/107703348-d00b0780-6cbb-11eb-8afd-054249c2b95e.png)
+
+## Improvements
+
+We have implemented a number of changes and improvements to the original game.
+They can be configured in `core/config.h`.
+Some of them can be toggled at runtime, some cannot.
+
+* Fixed a lot of smaller and bigger bugs
+* User files (saves and settings) stored in GTA root directory
+* Settings stored in re3.ini file instead of gta3.set
+* Debug menu to do and change various things (Ctrl-M to open)
+* Debug camera (Ctrl-B to toggle)
+* Rotatable camera
+* XInput controller support (Windows)
+* No loading screens between islands ("map memory usage" in menu)
+* Skinned ped support (models from Xbox or Mobile)
+* Rendering
+  * Widescreen support (properly scaled HUD, Menu and FOV)
+  * PS2 MatFX (vehicle reflections)
+  * PS2 alpha test (better rendering of transparency)
+  * PS2 particles
+  * Xbox vehicle rendering
+  * Xbox world lightmap rendering (needs Xbox map)
+  * Xbox ped rim light
+  * Xbox screen rain droplets
+  * More customizable colourfilter
+* Menu
+  * Map
+  * More options
+  * Controller configuration menu
+  * ...
+* Can load DFFs and TXDs from other platforms, possibly with a performance penalty
+* ...
+
+## To-Do
+
+The following things would be nice to have/do:
+
+* Fix physics for high FPS
+* Improve performance on lower end devices, especially the OpenGL layer on the Raspberry Pi (if you have experience with this, please get in touch)
+* Compare code with PS2 code (tedious, no good decompiler)
+* [PS2 port](https://github.com/GTAmodding/re3/wiki/PS2-port)
+* Xbox port (not quite as important)
+* reverse remaining unused/debug functions
+* compare CodeWarrior build with original binary for more accurate code (very tedious)
+
+## Modding
+
+Asset modifications (models, texture, handling, script, ...) should work the same way as with original GTA for the most part.
+
+Mods that make changes to the code (dll/asi, CLEO, limit adjusters) will *not* work.
+Some things these mods do are already implemented in re3 (much of SkyGFX, GInput, SilentPatch, Widescreen fix),
+others can easily be achieved (increasing limis, see `config.h`),
+others will simply have to be rewritten and integrated into the code directly.
+Sorry for the inconvenience.
 
 ## Building from Source  
 
