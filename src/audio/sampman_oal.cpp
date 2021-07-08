@@ -346,7 +346,7 @@ int8 cSampleManager::SetCurrent3DProvider(uint8 nProvider)
 {
 	int savedprovider = curprovider;
 
-	nProvider = clamp(nProvider, 0, m_nNumberOfProviders - 1);
+	nProvider = Clamp(nProvider, 0, m_nNumberOfProviders - 1);
 
 	if ( set_new_provider(nProvider) )
 		return curprovider;
@@ -444,18 +444,34 @@ _FindMP3s(void)
 	bool8 bInitFirstEntry;	
 	HANDLE hFind;
 	char path[MAX_PATH];
-	char filepath[MAX_PATH*2];
 	int total_ms;
 	WIN32_FIND_DATA fd;
+	char filepath[MAX_PATH + sizeof(fd.cFileName)];
+	
 #ifndef PSP2
 	if (getcwd(_mp3DirectoryPath, MAX_PATH) == NULL) {
 		perror("getcwd: ");
 		return;
 	}
 #endif
+
+	if (strlen(_mp3DirectoryPath) + 1 > MAX_PATH - 10) {
+		// This is not gonna end well
+		printf("MP3 folder path is too long, no place left for file names. MP3 finding aborted.\n");
+		return;
+	}
+	
 	OutputDebugString("Finding MP3s...");
 	strcpy(path, _mp3DirectoryPath);
 	strcat(path, "\\MP3\\");
+
+#if !defined(_WIN32)
+	char *actualPath = casepath(path);
+	if (actualPath) {
+		strcpy(path, actualPath);
+		free(actualPath);
+	}
+#endif
 	
 	strcpy(_mp3DirectoryPath, path);
 	OutputDebugString(_mp3DirectoryPath);
@@ -468,98 +484,34 @@ _FindMP3s(void)
 	{
 		return;
 	}
-	
-	strcpy(filepath, _mp3DirectoryPath);
-	strcat(filepath, fd.cFileName);
-	
-	size_t filepathlen = strlen(filepath);
-	
-	if ( filepathlen <= 0)
-	{
-		FindClose(hFind);
-		return;
-	}
-#ifndef PSP2
-	if ( _ResolveLink(filepath, filepath) )
-	{
-		OutputDebugString("Resolving Link");
-		OutputDebugString(filepath);
-		bShortcut = TRUE;
-	} else
-#endif
-		bShortcut = FALSE;
 
-	aStream[0] = new CStream(filepath, ALStreamSources[0], ALStreamBuffers[0]);
+	bShortcut = FALSE;
+	bInitFirstEntry = TRUE;
 
-	if (aStream[0] && aStream[0]->IsOpened())
-	{
-		total_ms = aStream[0]->GetLengthMS();
-		delete aStream[0];
-		aStream[0] = NULL;
+	do
+	{	
+		strcpy(filepath, _mp3DirectoryPath);
+		strcat(filepath, fd.cFileName);
+			
+		if (!strcmp(fd.cFileName, ".") || !strcmp(fd.cFileName, ".."))
+			continue;
 
-		OutputDebugString(fd.cFileName);
-		
-		_pMP3List = new tMP3Entry;
-		
-		if ( _pMP3List == NULL )
-		{
-			FindClose(hFind);
-			return;
-		}
-		
-		nNumMP3s = 1;
-		
-		strcpy(_pMP3List->aFilename, fd.cFileName);
-		
-		_pMP3List->nTrackLength = total_ms;
-		
-		_pMP3List->pNext = NULL;
-		
-		pList = _pMP3List;
-		
-		if ( bShortcut )
-		{
-			_pMP3List->pLinkPath = new char[MAX_PATH*2];
-			strcpy(_pMP3List->pLinkPath, filepath);
-		}
-		else
-		{
-			_pMP3List->pLinkPath = NULL;
-		}
+		size_t filepathlen = strlen(filepath);
 
-		bInitFirstEntry = FALSE;
-	}
-	else
-	{
-		strcat(filepath, " - NOT A VALID MP3");
-		
-		OutputDebugString(filepath);
-
-		bInitFirstEntry = TRUE;
-	}
-	
-	while ( TRUE )
-	{
-		if ( !FindNextFile(hFind, &fd) )
-			break;
-		
 		if ( bInitFirstEntry )
 		{
-			strcpy(filepath, _mp3DirectoryPath);
-			strcat(filepath, fd.cFileName);
-			
-			size_t filepathlen = strlen(filepath);
-
-			if ( filepathlen > 0 )
+			if (filepathlen > 0)
 			{
 #ifndef PSP2
-				if ( _ResolveLink(filepath, filepath) )
+				if (_ResolveLink(filepath, filepath))
 				{
 					OutputDebugString("Resolving Link");
 					OutputDebugString(filepath);
 					bShortcut = TRUE;
 				} else 
 #endif
+				}
+				else
 				{
 					bShortcut = FALSE;
 					if (filepathlen > MAX_PATH) {
@@ -573,31 +525,31 @@ _FindMP3s(void)
 					total_ms = aStream[0]->GetLengthMS();
 					delete aStream[0];
 					aStream[0] = NULL;
-					
+
 					OutputDebugString(fd.cFileName);
-					
+
 					_pMP3List = new tMP3Entry;
-					
-					if ( _pMP3List  == NULL)
+
+					if (_pMP3List == NULL)
 						break;
-					
+
 					nNumMP3s = 1;
-					
+
 					strcpy(_pMP3List->aFilename, fd.cFileName);
-					
+
 					_pMP3List->nTrackLength = total_ms;
 					_pMP3List->pNext = NULL;
-					
-					if ( bShortcut )
+
+					if (bShortcut)
 					{
-						_pMP3List->pLinkPath = new char [MAX_PATH*2];
+						_pMP3List->pLinkPath = new char[MAX_PATH + sizeof(fd.cFileName)];
 						strcpy(_pMP3List->pLinkPath, filepath);
 					}
 					else
 					{
 						_pMP3List->pLinkPath = NULL;
 					}
-					
+
 					pList = _pMP3List;
 
 					bInitFirstEntry = FALSE;
@@ -608,14 +560,11 @@ _FindMP3s(void)
 					OutputDebugString(filepath);
 				}
 			}
+			else
+				break;
 		}
 		else
 		{
-			strcpy(filepath, _mp3DirectoryPath);
-			strcat(filepath, fd.cFileName);
-			
-			size_t filepathlen = strlen(filepath);
-			
 			if ( filepathlen > 0 )
 			{
 #ifndef PSP2
@@ -624,7 +573,8 @@ _FindMP3s(void)
 					OutputDebugString("Resolving Link");
 					OutputDebugString(filepath);
 					bShortcut = TRUE;
-				} else
+				}
+				else
 #endif
 					bShortcut = FALSE;
 				
@@ -651,7 +601,7 @@ _FindMP3s(void)
 					
 					if ( bShortcut )
 					{
-						e->pLinkPath = new char [MAX_PATH*2];
+						e->pLinkPath = new char [MAX_PATH + sizeof(fd.cFileName)];
 						strcpy(e->pLinkPath, filepath);
 					}
 					else
@@ -670,7 +620,7 @@ _FindMP3s(void)
 				}
 			}
 		}
-	}
+	} while (FindNextFile(hFind, &fd));
 
 	FindClose(hFind);
 }
@@ -1269,14 +1219,14 @@ cSampleManager::IsPedCommentLoaded(uint32 nComment)
 {
 	ASSERT( nComment < TOTAL_AUDIO_SAMPLES );
 	
-	int8 slot;
-
 	for ( int32 i = 0; i < _TODOCONST(3); i++ )
 	{
-		slot = nCurrentPedSlot - i - 1;
 #ifdef FIX_BUGS
+		int8 slot = (int8)nCurrentPedSlot - i - 1;
 		if (slot < 0)
 			slot += ARRAY_SIZE(nPedSlotSfx);
+#else
+		uint8 slot = nCurrentPedSlot - i - 1;
 #endif
 		if ( nComment == nPedSlotSfx[slot] )
 			return TRUE;
@@ -1289,14 +1239,14 @@ cSampleManager::IsPedCommentLoaded(uint32 nComment)
 int32
 cSampleManager::_GetPedCommentSlot(uint32 nComment)
 {
-	int8 slot;
-
 	for (int32 i = 0; i < _TODOCONST(3); i++)
 	{
-		slot = nCurrentPedSlot - i - 1;
 #ifdef FIX_BUGS
+		int8 slot = (int8)nCurrentPedSlot - i - 1;
 		if (slot < 0)
 			slot += ARRAY_SIZE(nPedSlotSfx);
+#else
+		uint8 slot = nCurrentPedSlot - i - 1;
 #endif
 		if (nComment == nPedSlotSfx[slot])
 			return slot;
@@ -1428,7 +1378,7 @@ bool8 cSampleManager::UpdateReverb(void)
 	#undef CALCRATIO
 	#undef ZR
 	
-	fRatio = clamp(fRatio, usingEAX3==1 ? 0.0f : 0.30f, 1.0f);
+	fRatio = Clamp(fRatio, usingEAX3==1 ? 0.0f : 0.30f, 1.0f);
 	
 	if ( fRatio == _fPrevEaxRatioDestination )
 		return FALSE;

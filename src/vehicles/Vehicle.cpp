@@ -30,10 +30,10 @@ bool CVehicle::bAltDodoCheat;
 #endif
 bool CVehicle::m_bDisableMouseSteering = true;
 
-void *CVehicle::operator new(size_t sz) { return CPools::GetVehiclePool()->New();  }
-void *CVehicle::operator new(size_t sz, int handle) { return CPools::GetVehiclePool()->New(handle); }
-void CVehicle::operator delete(void *p, size_t sz) { CPools::GetVehiclePool()->Delete((CVehicle*)p); }
-void CVehicle::operator delete(void *p, int handle) { CPools::GetVehiclePool()->Delete((CVehicle*)p); }
+void *CVehicle::operator new(size_t sz) throw() { return CPools::GetVehiclePool()->New();  }
+void *CVehicle::operator new(size_t sz, int handle) throw() { return CPools::GetVehiclePool()->New(handle); }
+void CVehicle::operator delete(void *p, size_t sz) throw() { CPools::GetVehiclePool()->Delete((CVehicle*)p); }
+void CVehicle::operator delete(void *p, int handle) throw() { CPools::GetVehiclePool()->Delete((CVehicle*)p); }
 
 #ifdef FIX_BUGS
 // I think they meant that
@@ -430,8 +430,8 @@ CVehicle::FlyingControl(eFlightModel flightModel)
 		}
 		if (CPad::GetPad(0)->GetHorn()) {
 			fYaw = 0.0f;
-			fPitch = clamp(10.0f * DotProduct(m_vecMoveSpeed, GetForward()), -200.0f, 1.3f);
-			fRoll = clamp(10.0f * DotProduct(m_vecMoveSpeed, GetRight()), -200.0f, 1.3f);
+			fPitch = Clamp(10.0f * DotProduct(m_vecMoveSpeed, GetForward()), -200.0f, 1.3f);
+			fRoll = Clamp(10.0f * DotProduct(m_vecMoveSpeed, GetRight()), -200.0f, 1.3f);
 		}
 		ApplyTurnForce(fPitch * GetUp() * fPitchVar * m_fTurnMass * CTimer::GetTimeStep(), GetForward());
 		ApplyTurnForce(fRoll * GetUp() * fRollVar * m_fTurnMass * CTimer::GetTimeStep(), GetRight());

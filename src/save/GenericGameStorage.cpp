@@ -220,6 +220,11 @@ GenericSave(int file)
 	WriteSaveDataBlock(CStreaming::MemoryCardSave);
 	WriteSaveDataBlock(CPedType::Save);
 
+	// sure just write garbage data repeatedly ...
+#ifndef THIS_IS_STUPID
+	memset(work_buff, 0, sizeof(work_buff));
+#endif
+
 	// Write padding
 	for (int i = 0; i < 4; i++) {
 		size = align4bytes(SIZE_OF_ONE_GAME_IN_BYTES - totalSize - 4);
@@ -487,7 +492,11 @@ GetNameOfSavedGame(int32 slot)
 bool
 CheckDataNotCorrupt(int32 slot, char *name)
 {
+#ifdef FIX_BUGS
+	char filename[MAX_PATH];
+#else
 	char filename[100];
+#endif
 
 	int32 blocknum = 0;
 	eLevelName level = LEVEL_GENERIC;

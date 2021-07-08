@@ -515,10 +515,10 @@ public:
 	CVector m_vecSeekPosEx; // used for OBJECTIVE_GUARD_SPOT
 	float m_distanceToCountSeekDoneEx; // used for OBJECTIVE_GUARD_SPOT
 
-	static void *operator new(size_t);
-	static void *operator new(size_t, int);
-	static void operator delete(void*, size_t);
-	static void operator delete(void*, int);
+	static void *operator new(size_t) throw();
+	static void *operator new(size_t, int) throw();
+	static void operator delete(void*, size_t) throw();
+	static void operator delete(void*, int) throw();
 
 	CPed(uint32 pedType);
 	~CPed(void);
@@ -625,7 +625,7 @@ public:
 	void SetAimFlag(CEntity* to);
 	void SetAimFlag(float angle);
 	void SetAmmo(eWeaponType weaponType, uint32 ammo);
-	void SetEvasiveStep(CEntity*, uint8);
+	void SetEvasiveStep(CPhysical*, uint8);
 	void GrantAmmo(eWeaponType, uint32);
 	void SetEvasiveDive(CPhysical*, uint8);
 	void SetAttack(CEntity*);

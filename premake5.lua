@@ -28,13 +28,18 @@ newoption {
 }
 
 newoption {
+	trigger     = "with-lto",
+	description = "Build with link time optimization"
+}
+
+newoption {
 	trigger     = "no-git-hash",
 	description = "Don't print git commit hash into binary"
 }
 
 newoption {
-	trigger     = "lto",
-	description = "Use link time optimization"
+	trigger     = "no-full-paths",
+	description = "Don't print full paths into binary"
 }
 
 if(_OPTIONS["with-librw"]) then
@@ -110,11 +115,11 @@ workspace "re3"
 
 	filter "configurations:Debug"
 		defines { "DEBUG" }
-		
+
 	filter "configurations:not Debug"
 		defines { "NDEBUG" }
 		optimize "Speed"
-		if(_OPTIONS["lto"]) then
+		if(_OPTIONS["with-lto"]) then
 			flags { "LinkTimeOptimization" }
 		end
 
@@ -126,48 +131,54 @@ workspace "re3"
 
 	filter { "platforms:linux*" }
 		system "linux"
-		
+
 	filter { "platforms:bsd*" }
 		system "bsd"
 
 	filter { "platforms:macosx*" }
 		system "macosx"
-	
+
 	filter { "platforms:*x86*" }
 		architecture "x86"
-		
+
 	filter { "platforms:*amd64*" }
 		architecture "amd64"
 
 	filter { "platforms:*arm*" }
 		architecture "ARM"
 
-	filter { "platforms:macosx-arm64-*" }
+	filter { "platforms:macosx-arm64-*", "files:**.cpp"}
 		buildoptions { "-target", "arm64-apple-macos11", "-std=gnu++14" }
 
-	filter { "platforms:macosx-amd64-*" }
+	filter { "platforms:macosx-arm64-*", "files:**.c"}
+		buildoptions { "-target", "arm64-apple-macos11" }
+
+	filter { "platforms:macosx-amd64-*", "files:**.cpp"}
 		buildoptions { "-target", "x86_64-apple-macos10.12", "-std=gnu++14" }
+
+	filter { "platforms:macosx-amd64-*", "files:**.c"}
+		buildoptions { "-target", "x86_64-apple-macos10.12" }
 
 	filter { "platforms:*librw_d3d9*" }
 		defines { "RW_D3D9" }
 		if(not _OPTIONS["with-librw"]) then
 			libdirs { path.join(Librw, "lib/win-%{getarch(cfg.architecture)}-d3d9/%{cfg.buildcfg}") }
 		end
-		
+
 	filter "platforms:*librw_gl3_glfw*"
 		defines { "RW_GL3" }
 		if(not _OPTIONS["with-librw"]) then
 			libdirs { path.join(Librw, "lib/%{getsys(cfg.system)}-%{getarch(cfg.architecture)}-gl3/%{cfg.buildcfg}") }
 		end
-		
+
 	filter "platforms:*x86-librw_gl3_glfw*"
 		includedirs { path.join(_OPTIONS["glfwdir32"], "include") }
-		
+
 	filter "platforms:*amd64-librw_gl3_glfw*"
 		includedirs { path.join(_OPTIONS["glfwdir64"], "include") }
 
 	filter  {}
-		
+
     function setpaths (gamepath, exepath)
        if (gamepath) then
           postbuildcommands {
@@ -191,7 +202,7 @@ project "librw"
 	files { path.join(Librw, "src/*.*") }
 	files { path.join(Librw, "src/*/*.*") }
 	files { path.join(Librw, "src/gl/*/*.*") }
-	
+
 	filter { "platforms:*x86*" }
 		architecture "x86"
 
@@ -207,16 +218,22 @@ project "librw"
 		includedirs { "/usr/local/include" }
 		libdirs { "/usr/local/lib" }
 
-	filter "platforms:macosx*"
-		-- Support MacPorts and Homebrew
+	-- Support MacPorts and Homebrew
+	filter "platforms:macosx-arm64-*"
+		includedirs { "/opt/local/include" }
+		includedirs {"/opt/homebrew/include" }
+		libdirs { "/opt/local/lib" }
+		libdirs { "/opt/homebrew/lib" }
+		
+	filter "platforms:macosx-amd64-*"
 		includedirs { "/opt/local/include" }
 		includedirs {"/usr/local/include" }
 		libdirs { "/opt/local/lib" }
 		libdirs { "/usr/local/lib" }
-
+		
 	filter "platforms:*gl3_glfw*"
 		staticruntime "off"
-	
+
 	filter "platforms:*RW33*"
 		flags { "ExcludeFromBuild" }
 	filter  {}
@@ -291,7 +308,7 @@ project "re3"
 	if(not _OPTIONS["no-git-hash"]) then
 		defines { "USE_OUR_VERSIONING" }
 	end
-	
+
 	if _OPTIONS["with-opus"] then
 		includedirs { "vendor/ogg/include" }
 		includedirs { "vendor/opus/include" }
@@ -302,7 +319,7 @@ project "re3"
 		defines { "AUDIO_MSS" }
 		includedirs { "vendor/milessdk/include" }
 		libdirs { "vendor/milessdk/lib" }
-	
+
 	if _OPTIONS["with-opus"] then
 		filter "platforms:win*"
 			libdirs { "vendor/ogg/win32/VS2015/Win32/%{cfg.buildcfg}" }
@@ -311,15 +328,15 @@ project "re3"
 		filter {}
 		defines { "AUDIO_OPUS" }
 	end
-		
+
 	filter "platforms:*oal"
 		defines { "AUDIO_OAL" }
-	
+
 	filter {}
 	if(os.getenv("GTA_III_RE_DIR")) then
 		setpaths(os.getenv("GTA_III_RE_DIR") .. "/", "%(cfg.buildtarget.name)")
 	end
-	
+
 	filter "platforms:win*"
 		files { addSrcFiles("src/skel/win") }
 		includedirs { "src/skel/win" }
@@ -327,6 +344,10 @@ project "re3"
 		linkoptions "/SAFESEH:NO"
 		characterset ("MBCS")
 		targetextension ".exe"
+		if(_OPTIONS["no-full-paths"]) then
+			usefullpaths "off"
+			linkoptions "/PDBALTPATH:%_PDB%"
+		end
 		if(_OPTIONS["with-librw"]) then
 			-- external librw is dynamic
 			staticruntime "on"
@@ -334,7 +355,7 @@ project "re3"
 		if(not _OPTIONS["no-git-hash"]) then
 			prebuildcommands { '"%{prj.location}..\\printHash.bat" "%{prj.location}..\\src\\extras\\GitSHA1.cpp"' }
 		end
-	
+
 	filter "platforms:not win*"
 		if(not _OPTIONS["no-git-hash"]) then
 			prebuildcommands { '"%{prj.location}/../printHash.sh" "%{prj.location}/../src/extras/GitSHA1.cpp"' }
@@ -342,17 +363,17 @@ project "re3"
 
 	filter "platforms:win*glfw*"
 		staticruntime "off"
-		
+
 	filter "platforms:win*oal"
 		includedirs { "vendor/openal-soft/include" }
 		includedirs { "vendor/libsndfile/include" }
 		includedirs { "vendor/mpg123/include" }
-		
+
 	filter "platforms:win-x86*oal"
 		libdirs { "vendor/mpg123/lib/Win32" }
 		libdirs { "vendor/libsndfile/lib/Win32" }
 		libdirs { "vendor/openal-soft/libs/Win32" }
-		
+
 	filter "platforms:win-amd64*oal"
 		libdirs { "vendor/mpg123/lib/Win64" }
 		libdirs { "vendor/libsndfile/lib/Win64" }
@@ -360,15 +381,21 @@ project "re3"
 
 	filter "platforms:linux*oal"
 		links { "openal", "mpg123", "sndfile", "pthread", "X11" }
-		
+
 	filter "platforms:bsd*oal"
 		links { "openal", "mpg123", "sndfile", "pthread", "X11" }
 
 	filter "platforms:macosx*oal"
 		links { "openal", "mpg123", "sndfile", "pthread" }
+		
+	filter "platforms:macosx-arm64-*oal"
+		includedirs { "/opt/homebrew/opt/openal-soft/include" }
+		libdirs { "/opt/homebrew/opt/openal-soft/lib" }
+		
+	filter "platforms:macosx-amd64-*oal"
 		includedirs { "/usr/local/opt/openal-soft/include" }
 		libdirs { "/usr/local/opt/openal-soft/lib" }
-	
+
 	if _OPTIONS["with-opus"] then
 		filter {}
 		links { "libogg" }
@@ -382,7 +409,7 @@ project "re3"
 		links { "rwcore", "rpworld", "rpmatfx", "rpskin", "rphanim", "rtbmp", "rtquat", "rtcharse", "rpanisot" }
 		defines { "RWLIBS" }
 		linkoptions "/SECTION:_rwcseg,ER!W /MERGE:_rwcseg=.text"
-	
+
 	filter "platforms:*librw*"
 		defines { "LIBRW" }
 		files { addSrcFiles("src/fakerw") }
@@ -396,31 +423,39 @@ project "re3"
 	filter "platforms:*d3d9*"
 		defines { "USE_D3D9" }
 		links { "d3d9" }
-		
+
 	filter "platforms:*x86*d3d*"
 		includedirs { "sdk/dx8sdk/include" }
 		libdirs { "sdk/dx8sdk/lib" }
-		
+
 	filter "platforms:win-x86*gl3_glfw*"
 		libdirs { path.join(_OPTIONS["glfwdir32"], "lib-" .. string.gsub(_ACTION or '', "vs", "vc")) }
 		links { "opengl32", "glfw3" }
-		
+
 	filter "platforms:win-amd64*gl3_glfw*"
 		libdirs { path.join(_OPTIONS["glfwdir64"], "lib-" .. string.gsub(_ACTION or '', "vs", "vc")) }
 		links { "opengl32", "glfw3" }
 
 	filter "platforms:linux*gl3_glfw*"
 		links { "GL", "glfw" }
-		
+
 	filter "platforms:bsd*gl3_glfw*"
 		links { "GL", "glfw", "sysinfo" }
 		includedirs { "/usr/local/include" }
 		libdirs { "/usr/local/lib" }
 
-	filter "platforms:macosx*gl3_glfw*"
+	filter "platforms:macosx-arm64-*gl3_glfw*"
 		links { "glfw" }
 		linkoptions { "-framework OpenGL" }
 		includedirs { "/opt/local/include" }
-		includedirs { "/usr/local/include" }
+		includedirs {"/opt/homebrew/include" }
+		libdirs { "/opt/local/lib" }
+		libdirs { "/opt/homebrew/lib" }
+		
+	filter "platforms:macosx-amd64-*gl3_glfw*"
+		links { "glfw" }
+		linkoptions { "-framework OpenGL" }
+		includedirs { "/opt/local/include" }
+		includedirs {"/usr/local/include" }
 		libdirs { "/opt/local/lib" }
 		libdirs { "/usr/local/lib" }

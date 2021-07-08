@@ -48,10 +48,10 @@ bool CPed::bPedCheat2;
 bool CPed::bPedCheat3;
 CVector2D CPed::ms_vec2DFleePosition;
 
-void *CPed::operator new(size_t sz) { return CPools::GetPedPool()->New();  }
-void *CPed::operator new(size_t sz, int handle) { return CPools::GetPedPool()->New(handle); }
-void CPed::operator delete(void *p, size_t sz) { CPools::GetPedPool()->Delete((CPed*)p); }
-void CPed::operator delete(void *p, int handle) { CPools::GetPedPool()->Delete((CPed*)p); }
+void *CPed::operator new(size_t sz) throw() { return CPools::GetPedPool()->New();  }
+void *CPed::operator new(size_t sz, int handle) throw() { return CPools::GetPedPool()->New(handle); }
+void CPed::operator delete(void *p, size_t sz) throw() { CPools::GetPedPool()->Delete((CPed*)p); }
+void CPed::operator delete(void *p, int handle) throw() { CPools::GetPedPool()->Delete((CPed*)p); }
 
 #ifdef DEBUGMENU
 bool CPed::bPopHeadsOnHeadshot = false;
@@ -308,6 +308,30 @@ CPed::~CPed(void)
 		m_pFire->Extinguish();
 	CPopulation::UpdatePedCount((ePedType)m_nPedType, true);
 	DMAudio.DestroyEntity(m_audioEntityId);
+
+	// Because of the nature of ped lists in GTA, it can sometimes be outdated.
+	// Remove ourself from nearPeds list of the Peds in our nearPeds list.
+#ifdef FIX_BUGS
+	for(int i = 0; i < m_numNearPeds; i++) {
+		CPed *nearPed = m_nearPeds[i];
+		assert(nearPed != nil);
+		if (!nearPed->IsPointerValid())
+			continue;
+
+		for(int j = 0; j < nearPed->m_numNearPeds;) {
+			assert(j == ARRAY_SIZE(m_nearPeds) - 1 || nearPed->m_nearPeds[j] || !nearPed->m_nearPeds[j+1]); // ensure nil comes after nil
+
+			if (nearPed->m_nearPeds[j] == this) {
+				for (int k = j; k < ARRAY_SIZE(m_nearPeds) - 1; k++) {
+					nearPed->m_nearPeds[k] = nearPed->m_nearPeds[k + 1];
+					nearPed->m_nearPeds[k + 1] = nil;
+				}
+				nearPed->m_numNearPeds--;
+			} else
+				j++;
+		}
+	}
+#endif
 }
 
 void
@@ -398,13 +422,15 @@ CPed::BuildPedLists(void)
 				} else
 					removePed = true;
 			}
+
+			assert(i == ARRAY_SIZE(m_nearPeds) - 1 || m_nearPeds[i] || !m_nearPeds[i+1]); // ensure nil comes after nil
+
 			if (removePed) {
 				// If we arrive here, the ped we're checking isn't "near", so we should remove it.
 				for (int j = i; j < ARRAY_SIZE(m_nearPeds) - 1; j++) {
 					m_nearPeds[j] = m_nearPeds[j + 1];
 					m_nearPeds[j + 1] = nil;
 				}
-				// Above loop won't work on last slot, so we need to empty it.
 				m_nearPeds[ARRAY_SIZE(m_nearPeds) - 1] = nil;
 				m_numNearPeds--;	
 			} else
@@ -2928,7 +2954,7 @@ CPed::ProcessControl(void)
 								lDriveAssoc->blendAmount = 0.0f;
 
 							if (rDriveAssoc)
-								rDriveAssoc->blendAmount = clamp(steerAngle * -100.0f / 61.0f, 0.0f, 1.0f);
+								rDriveAssoc->blendAmount = Clamp(steerAngle * -100.0f / 61.0f, 0.0f, 1.0f);
 							else if (m_pMyVehicle->bLowVehicle)
 								CAnimManager::AddAnimation(GetClump(), ASSOCGRP_STD, ANIM_STD_CAR_DRIVE_RIGHT_LO);
 							else
@@ -2939,7 +2965,7 @@ CPed::ProcessControl(void)
 								rDriveAssoc->blendAmount = 0.0f;
 
 							if (lDriveAssoc)
-								lDriveAssoc->blendAmount = clamp(steerAngle * 100.0f / 61.0f, 0.0f, 1.0f);
+								lDriveAssoc->blendAmount = Clamp(steerAngle * 100.0f / 61.0f, 0.0f, 1.0f);
 							else if (m_pMyVehicle->bLowVehicle)
 								CAnimManager::AddAnimation(GetClump(), ASSOCGRP_STD, ANIM_STD_CAR_DRIVE_LEFT_LO);
 							else
@@ -3023,7 +3049,7 @@ CPed::ProcessEntityCollision(CEntity *collidingEnt, CColPoint *collidingPoints)
 	CColModel *hisCol = CModelInfo::GetModelInfo(collidingEnt->GetModelIndex())->GetColModel();
 
 	if (!bUsesCollision)
-		return false;
+		return 0;
 
 	if (collidingEnt->IsVehicle() && ((CVehicle*)collidingEnt)->IsBoat())
 		collidedWithBoat = true;
@@ -6068,7 +6094,7 @@ CPed::FollowPath(void)
 }
 
 void
-CPed::SetEvasiveStep(CEntity *reason, uint8 animType)
+CPed::SetEvasiveStep(CPhysical *reason, uint8 animType)
 {
 	AnimationId stepAnim;
 
@@ -6086,22 +6112,23 @@ CPed::SetEvasiveStep(CEntity *reason, uint8 animType)
 	if (neededTurn > PI)
 		neededTurn = TWOPI - neededTurn;
 
-	CVehicle *veh = (CVehicle*)reason;
-	if (reason->IsVehicle() && veh->m_vehType == VEHICLE_TYPE_CAR) {
+	if (reason->IsVehicle() && ((CVehicle*)reason)->IsCar()) {
+		CVehicle *veh = (CVehicle*)reason;
 		if (veh->m_nCarHornTimer != 0) {
 			vehPressedHorn = true;
 			if (!IsPlayer())
 				animType = 1;
 		}
 	}
-	if (neededTurn <= DEGTORAD(90.0f) || veh->GetModelIndex() == MI_RCBANDIT || vehPressedHorn || animType != 0) {
-		SetLookFlag(veh, true);
-		if ((CGeneral::GetRandomNumber() & 1) && veh->GetModelIndex() != MI_RCBANDIT && animType == 0) {
+
+	if (neededTurn <= DEGTORAD(90.0f) || reason->GetModelIndex() == MI_RCBANDIT || vehPressedHorn || animType != 0) {
+		SetLookFlag(reason, true);
+		if ((CGeneral::GetRandomNumber() & 1) && reason->GetModelIndex() != MI_RCBANDIT && animType == 0) {
 			stepAnim = ANIM_STD_HAILTAXI;
 		} else {
 
-			float vehDirection = CGeneral::GetRadianAngleBetweenPoints(
-				veh->m_vecMoveSpeed.x, veh->m_vecMoveSpeed.y,
+			float dangerDirection = CGeneral::GetRadianAngleBetweenPoints(
+				reason->m_vecMoveSpeed.x, reason->m_vecMoveSpeed.y,
 				0.0f, 0.0f);
 
 			// Let's turn our back to the "reason"
@@ -6111,14 +6138,14 @@ CPed::SetEvasiveStep(CEntity *reason, uint8 animType)
 				angleToFace -=  TWOPI;
 
 			// We don't want to run towards car's direction
-			float dangerZone = angleToFace - vehDirection;
+			float dangerZone = angleToFace - dangerDirection;
 			dangerZone = CGeneral::LimitRadianAngle(dangerZone);
 
 			// So, add or subtract 90deg (jump to left/right) according to that
 			if (dangerZone > 0.0f)
-				angleToFace = vehDirection - HALFPI;
+				angleToFace = dangerDirection - HALFPI;
 			else
-				angleToFace = vehDirection + HALFPI;
+				angleToFace = dangerDirection + HALFPI;
 
 			stepAnim = ANIM_STD_NUM;
 			if (animType == 0 || animType == 1)

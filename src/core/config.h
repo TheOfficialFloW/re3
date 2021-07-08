@@ -380,12 +380,12 @@ enum Config {
 #define CAMERA_PICKUP
 
 // Peds
-#define PED_SKIN		// support for skinned geometry on peds
+#define PED_SKIN		// support for skinned geometry on peds, requires COMPATIBLE_SAVES
 #define ANIMATE_PED_COL_MODEL
 // #define VC_PED_PORTS			// various ports from VC's CPed, mostly subtle
 // #define NEW_WALK_AROUND_ALGORITHM	// to make walking around vehicles/objects less awkward
 #define CANCELLABLE_CAR_ENTER
-//#define PEDS_REPORT_CRIMES_ON_PHONE
+//#define PEDS_REPORT_CRIMES_ON_PHONE, requires COMPATIBLE_SAVES
 
 // Camera
 //#define PS2_CAM_TRANSITION	// old way of transitioning between cam modes
@@ -399,6 +399,7 @@ enum Config {
 //#define PS2_AUDIO_PATHS // changes audio paths for cutscenes and radio to PS2 paths (needs vbdec on MSS builds)
 //#define AUDIO_OAL_USE_SNDFILE // use libsndfile to decode WAVs instead of our internal decoder
 #define AUDIO_OAL_USE_MPG123 // use mpg123 to support mp3 files
+#define PAUSE_RADIO_IN_FRONTEND // pause radio when game is paused
 
 #ifdef AUDIO_OPUS
 #define AUDIO_OAL_USE_OPUS // enable support of opus files
@@ -434,6 +435,12 @@ enum Config {
 	#define PC_PARTICLE
 	#define VC_PED_PORTS // To not process collisions always. But should be tested if that's really beneficial
 	#define VC_RAIN_NERF // Reduces number of rain particles
+#endif
+
+// if these defines are enabled saves are not vanilla compatible without COMPATIBLE_SAVES
+#ifndef COMPATIBLE_SAVES
+#undef PED_SKIN
+#undef PEDS_REPORT_CRIMES_ON_PHONE
 #endif
 
 // -------

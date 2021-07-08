@@ -321,7 +321,7 @@ cAudioManager::Get3DProviderName(uint8 id) const
 	if (!m_bIsInitialised)
 		return nil;
 #ifdef AUDIO_OAL
-	id = clamp(id, 0, SampleManager.GetNum3DProvidersAvailable() - 1);
+	id = Clamp(id, 0, SampleManager.GetNum3DProvidersAvailable() - 1);
 #else
 	// We don't want that either since it will crash the game, but skipping for now
 	if (id >= SampleManager.GetNum3DProvidersAvailable())
@@ -977,7 +977,7 @@ void
 cAudioManager::AdjustSamplesVolume()
 {
 	for (int i = 0; i < m_SampleRequestQueuesStatus[m_nActiveSampleQueue]; i++) {
-		tSound *pSample = &m_asSamples[m_nActiveSampleQueue][m_abSampleQueueIndexTable[m_nActiveSampleQueue][i] + 1];
+		tSound *pSample = &m_asSamples[m_nActiveSampleQueue][m_abSampleQueueIndexTable[m_nActiveSampleQueue][i]];
 
 		if (!pSample->m_bIs2D)
 			pSample->m_nEmittingVolume = ComputeEmittingVolume(pSample->m_nEmittingVolume, pSample->m_fSoundIntensity, pSample->m_fDistance);

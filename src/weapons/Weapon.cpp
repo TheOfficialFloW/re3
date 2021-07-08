@@ -203,7 +203,7 @@ CWeapon::Fire(CEntity *shooter, CVector *fireSource)
 				else if ( shooter->IsPed() && ((CPed*)shooter)->m_pSeekTarget != nil )
 				{
 					float distToTarget = (shooter->GetPosition() - ((CPed*)shooter)->m_pSeekTarget->GetPosition()).Magnitude();
-					float power = clamp((distToTarget-10.0f)*0.02f, 0.2f, 1.0f);
+					float power = Clamp((distToTarget-10.0f)*0.02f, 0.2f, 1.0f);
 
 					fired = FireProjectile(shooter, source, power);
 				}
@@ -2266,7 +2266,11 @@ CWeapon::HitsGround(CEntity *holder, CVector *fireSource, CEntity *aimingTo)
 void
 CWeapon::BlowUpExplosiveThings(CEntity *thing)
 {
+#ifdef FIX_BUGS
+	if ( thing && thing->IsObject() )
+#else
 	if ( thing )
+#endif
 	{
 		CObject *object = (CObject*)thing;
 		int32 mi = object->GetModelIndex();
