@@ -508,10 +508,10 @@ _FindMP3s(void)
 					OutputDebugString("Resolving Link");
 					OutputDebugString(filepath);
 					bShortcut = TRUE;
-				} else 
-#endif
 				}
 				else
+#endif
+				
 				{
 					bShortcut = FALSE;
 					if (filepathlen > MAX_PATH) {
