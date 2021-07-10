@@ -24,9 +24,9 @@
 #include "World.h"
 #include "SurfaceTable.h"
 
-#ifdef SQUEEZE_PERFORMANCE
-uint32 bulletInfoInUse;
-#endif
+//#ifdef SQUEEZE_PERFORMANCE
+//uint32 bulletInfoInUse;
+//#endif
 
 #define BULLET_LIFETIME (1000)
 #define NUM_PED_BLOOD_PARTICLES (8)
@@ -51,9 +51,9 @@ void CBulletInfo::Initialise(void)
 		gaBulletInfo[i].m_pSource = nil;
 	}
 	debug("CBulletInfo ready\n");
-#ifdef SQUEEZE_PERFORMANCE
-	bulletInfoInUse = 0;
-#endif
+//#ifdef SQUEEZE_PERFORMANCE
+//	bulletInfoInUse = 0;
+//#endif
 }
 
 void CBulletInfo::Shutdown(void)
@@ -79,18 +79,18 @@ bool CBulletInfo::AddBullet(CEntity* pSource, eWeaponType type, CVector vecPosit
 	gaBulletInfo[i].m_fTimer = CTimer::GetTimeInMilliseconds() + BULLET_LIFETIME;
 	gaBulletInfo[i].m_bInUse = true;
 
-#ifdef SQUEEZE_PERFORMANCE
-	bulletInfoInUse++;
-#endif
+//#ifdef SQUEEZE_PERFORMANCE
+//	bulletInfoInUse++;
+//#endif
 	return true;
 }
 
 void CBulletInfo::Update(void)
 {
-#ifdef SQUEEZE_PERFORMANCE
-	if (bulletInfoInUse == 0)
-		return;
-#endif
+//#ifdef SQUEEZE_PERFORMANCE
+//	if (bulletInfoInUse == 0)
+//		return;
+//#endif
 	bool bAddSound = true;
 	bPlayerSniperBullet = false;
 	for (int i = 0; i < NUM_BULLETS; i++) {
@@ -101,9 +101,9 @@ void CBulletInfo::Update(void)
 			continue;
 		if (CTimer::GetTimeInMilliseconds() > pBullet->m_fTimer) {
 			pBullet->m_bInUse = false;
-#ifdef SQUEEZE_PERFORMANCE
-			bulletInfoInUse--;
-#endif
+//#ifdef SQUEEZE_PERFORMANCE
+//			bulletInfoInUse--;
+//#endif
 		}
 		CVector vecOldPos = pBullet->m_vecPosition;
 		CVector vecNewPos = pBullet->m_vecPosition + pBullet->m_vecSpeed * CTimer::GetTimeStep() * 0.5f;
@@ -127,9 +127,9 @@ void CBulletInfo::Update(void)
 						pPed->InflictDamage(pBullet->m_pSource, pBullet->m_eWeaponType, pBullet->m_nDamage, (ePedPieceTypes)point.pieceB, pPed->GetLocalDirection(pPed->GetPosition() - point.point));
 						CEventList::RegisterEvent(pPed->m_nPedType == PEDTYPE_COP ? EVENT_SHOOT_COP : EVENT_SHOOT_PED, EVENT_ENTITY_PED, pPed, (CPed*)pBullet->m_pSource, 1000);
 						pBullet->m_bInUse = false;
-#ifdef SQUEEZE_PERFORMANCE
-						bulletInfoInUse--;
-#endif
+//#ifdef SQUEEZE_PERFORMANCE
+//						bulletInfoInUse--;
+//#endif
 						vecNewPos = point.point;
 					}
 					else {
@@ -156,9 +156,9 @@ void CBulletInfo::Update(void)
 						}
 					}
 					pBullet->m_bInUse = false;
-#ifdef SQUEEZE_PERFORMANCE
-					bulletInfoInUse--;
-#endif
+//#ifdef SQUEEZE_PERFORMANCE
+//					bulletInfoInUse--;
+//#endif
 					vecNewPos = point.point;
 				}
 			}
@@ -173,9 +173,9 @@ void CBulletInfo::Update(void)
 				}
 #ifdef FIX_BUGS
 				pBullet->m_bInUse = false;
-#ifdef SQUEEZE_PERFORMANCE
-				bulletInfoInUse--;
-#endif
+//#ifdef SQUEEZE_PERFORMANCE
+//				bulletInfoInUse--;
+//#endif
 				vecNewPos = point.point;
 #endif
 			}
@@ -195,9 +195,9 @@ void CBulletInfo::Update(void)
 				}
 #ifdef FIX_BUGS
 				pBullet->m_bInUse = false;
-#ifdef SQUEEZE_PERFORMANCE
-				bulletInfoInUse--;
-#endif
+//#ifdef SQUEEZE_PERFORMANCE
+//				bulletInfoInUse--;
+//#endif
 				vecNewPos = point.point;
 #endif
 			}
@@ -250,9 +250,9 @@ void CBulletInfo::Update(void)
 		if (pBullet->m_vecPosition.x < -MAP_BORDER || pBullet->m_vecPosition.x > MAP_BORDER ||
 			pBullet->m_vecPosition.y < -MAP_BORDER || pBullet->m_vecPosition.y > MAP_BORDER) {
 			pBullet->m_bInUse = false;
-#ifdef SQUEEZE_PERFORMANCE
-			bulletInfoInUse--;
-#endif
+//#ifdef SQUEEZE_PERFORMANCE
+//			bulletInfoInUse--;
+//#endif
 		}
 	}
 }

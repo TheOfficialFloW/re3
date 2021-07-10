@@ -1122,12 +1122,12 @@ CPopulation::ManagePopulation(void)
 			}
 
 			float dist = (ped->GetPosition() - playerPos).Magnitude2D();
-#ifdef SQUEEZE_PERFORMANCE
+/*#ifdef SQUEEZE_PERFORMANCE
 			if (dist > 50.f)
 				ped->bUsesCollision = false;
 			else
 				ped->bUsesCollision = true;
-#endif
+#endif*/
 
 			bool pedIsFarAway = false;
 			if (PedCreationDistMultiplier() * (PED_REMOVE_DIST_SPECIAL * TheCamera.GenerationDistMultiplier) < dist
