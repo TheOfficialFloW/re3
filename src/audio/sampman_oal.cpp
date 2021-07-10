@@ -465,7 +465,7 @@ _FindMP3s(void)
 	strcpy(path, _mp3DirectoryPath);
 	strcat(path, "\\MP3\\");
 
-#if !defined(_WIN32)
+#if !defined(_WIN32) && !defined(PSP2)
 	char *actualPath = casepath(path);
 	if (actualPath) {
 		strcpy(path, actualPath);
