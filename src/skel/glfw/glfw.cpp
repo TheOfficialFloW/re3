@@ -1987,6 +1987,10 @@ void movie_player_init() {
 }
 
 void movie_player_play(const char *file) {
+	SceIoStat st;
+	if (sceIoGetstat(file, &st) < 0)
+		return;
+	
 	movie_player_init();
 	movie_player_audio_init();
 	
