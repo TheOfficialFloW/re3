@@ -427,15 +427,15 @@ enum Config {
 #endif
 #define BIG_IMG // Not complete - allows to read larger img files
 
-#define SQUEEZE_PERFORMANCE
-#ifdef SQUEEZE_PERFORMANCE
+//#define SQUEEZE_PERFORMANCE
+//#ifdef SQUEEZE_PERFORMANCE
 //	#undef PS2_ALPHA_TEST
 	#undef NO_ISLAND_LOADING
 	#undef PS2_AUDIO_CHANNELS
 	#define PC_PARTICLE
 	#define VC_PED_PORTS // To not process collisions always. But should be tested if that's really beneficial
 	#define VC_RAIN_NERF // Reduces number of rain particles
-#endif
+//#endif
 
 // if these defines are enabled saves are not vanilla compatible without COMPATIBLE_SAVES
 #ifndef COMPATIBLE_SAVES
