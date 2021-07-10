@@ -15,7 +15,7 @@ https://samilops2.gitbook.io/vita-troubleshooting-guide/grand-theft-auto/gta-iii
 ## Build instructions
 
 1. Install [vitasdk](https://vitasdk.org/).
-2. Install [vitaGL](https://github.com/Rinnegatamante/vitaGL) using `make HAVE_SBRK=1 HAVE_SHARK=1 install`.
+2. Install [vitaGL](https://github.com/Rinnegatamante/vitaGL) using `make NO_DEBUG=1 PHYCONT_ON_DEMAND=1 install`.
 3. Install [librw-vita](https://github.com/Rinnegatamante/librw) using `make install`.
 4. Compile re3-vita using `make`.
 
